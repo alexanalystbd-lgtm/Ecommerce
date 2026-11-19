@@ -1,0 +1,6 @@
+{
+  "name": "Ghorer Bazar",
+  "description": "Ghorer Bazar is an e-commerce platform dedicated to providing safe and reliable food to every home.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
