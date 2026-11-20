@@ -91,3 +91,95 @@ body {
   background-repeat: no-repeat;
   background-position: right 9px center;
 }
+
+/* Responsive horizontal sliding tracks for Home Featured Categories & Product Carousels */
+.cat-carousel-track {
+  --slide-step: calc(50% + 7px);
+  transform: translateX(calc(var(--slide-index, 0) * -1 * var(--slide-step)));
+}
+
+.cat-carousel-item {
+  flex: 0 0 calc((100% - 14px) / 2);
+}
+
+@media (min-width: 640px) {
+  .cat-carousel-track {
+    --slide-step: calc(25% + 4.5px);
+  }
+  .cat-carousel-item {
+    flex: 0 0 calc((100% - 54px) / 4);
+  }
+}
+
+@media (min-width: 1024px) {
+  .cat-carousel-track {
+    --slide-step: calc(12.5% + 2.25px);
+  }
+  .cat-carousel-item {
+    flex: 0 0 calc((100% - 126px) / 8);
+  }
+}
+
+.prod-carousel-track {
+  --slide-step: calc(50% + 6px);
+  transform: translateX(calc(var(--slide-index, 0) * -1 * var(--slide-step)));
+}
+
+.prod-carousel-item {
+  flex: 0 0 calc((100% - 12px) / 2);
+}
+
+@media (min-width: 768px) {
+  .prod-carousel-track {
+    --slide-step: calc(33.333333% + 6.666667px);
+  }
+  .prod-carousel-item {
+    flex: 0 0 calc((100% - 40px) / 3);
+  }
+}
+
+@media (min-width: 1024px) {
+  .prod-carousel-track {
+    --slide-step: calc(20% + 4px);
+  }
+  .prod-carousel-item {
+    flex: 0 0 calc((100% - 80px) / 5);
+  }
+}
+
+.brand-carousel-track {
+  --slide-step: calc(50% + 7px);
+  transform: translateX(calc(var(--slide-index, 0) * -1 * var(--slide-step)));
+}
+
+.brand-carousel-item {
+  flex: 0 0 calc((100% - 14px) / 2);
+}
+
+@media (min-width: 768px) {
+  .brand-carousel-track {
+    --slide-step: calc(25% + 6px);
+  }
+  .brand-carousel-item {
+    flex: 0 0 calc((100% - 72px) / 4);
+  }
+}
+
+.review-carousel-track {
+  --slide-step: calc(50% + 6px);
+  transform: translateX(calc(var(--slide-index, 0) * -1 * var(--slide-step)));
+}
+
+.review-carousel-item {
+  flex: 0 0 calc((100% - 12px) / 2);
+}
+
+@media (min-width: 768px) {
+  .review-carousel-track {
+    --slide-step: calc(33.333333% + 6.666667px);
+  }
+  .review-carousel-item {
+    flex: 0 0 calc((100% - 40px) / 3);
+  }
+}
+

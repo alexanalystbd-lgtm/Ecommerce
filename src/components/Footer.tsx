@@ -17,7 +17,7 @@ export const Footer: React.FC<FooterProps> = ({
   onShowToast,
 }) => {
   return (
-    <footer id="footer" className="bg-white border-t border-[#EAE8E3] pt-10 sm:pt-12 pb-6">
+    <footer id="footer" className="bg-white border-t border-[#EAE8E3] pt-10 sm:pt-12 pb-20 md:pb-6">
       <div className="max-w-[1252px] mx-auto px-4 xl:px-0">
         <div className="grid grid-cols-2 md:grid-cols-12 gap-7 sm:gap-8">
           {/* Brand & Contact Column */}

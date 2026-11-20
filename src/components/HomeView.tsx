@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight, Flame, ShoppingCart, Star } from 'lucide-react';
 import {
   ALL_NATURAL_HONEY,
@@ -6,12 +6,14 @@ import {
   COOKING_ESSENTIALS,
   FEATURED_CATEGORIES,
   JUST_FOR_YOU,
+  MENU_SUNDARBAN_PRODUCTS,
   ORGANIC_CERTIFIED,
   PREMIUM_DATES,
   TESTIMONIALS,
   TOP_SELLING_PRODUCTS,
 } from '../data/storeData';
-import { Product } from '../types/store';
+import { FeaturedCategory, Product } from '../types/store';
+import { getNextSlideIndex } from '../utils/storeLogic';
 import { ProductCard } from './ProductCard';
 
 interface HomeViewProps {
@@ -76,21 +78,196 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
   </div>
 );
 
+interface SlidingProductSectionProps {
+  id: string;
+  title: string;
+  items: Product[];
+  dotCount: number;
+  initialDot?: number;
+  intervalMs: number;
+  onAction: () => void;
+  onAddToCart: (product: Product) => void;
+  onBuyNow: (product: Product) => void;
+  onSelectProduct: (product: Product) => void;
+}
+
+const SlidingProductSection: React.FC<SlidingProductSectionProps> = ({
+  id,
+  title,
+  items,
+  dotCount,
+  initialDot = 0,
+  intervalMs,
+  onAction,
+  onAddToCart,
+  onBuyNow,
+  onSelectProduct,
+}) => {
+  const [slideIndex, setSlideIndex] = useState(initialDot % dotCount);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    if (isPaused) return;
+    const timer = window.setInterval(() => {
+      setSlideIndex((prev) => getNextSlideIndex(prev, dotCount, 1));
+    }, intervalMs);
+    return () => window.clearInterval(timer);
+  }, [dotCount, intervalMs, isPaused]);
+
+  const trackItems = [...items, ...items.slice(0, 5)];
+
+  return (
+    <section
+      id={id}
+      className="pt-8 pb-4"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      <SectionHeader title={title} actionLabel="VIEW ALL ITEMS" onAction={onAction} />
+
+      <div className="relative group/carousel">
+        <button
+          type="button"
+          aria-label={`Previous ${title}`}
+          onClick={() => setSlideIndex((prev) => getNextSlideIndex(prev, dotCount, -1))}
+          className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/95 hover:bg-[#F48721] text-[#475569] hover:text-white border border-[#E6E4DF] items-center justify-center shadow-sm opacity-0 group-hover/carousel:opacity-100 transition-all cursor-pointer"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          aria-label={`Next ${title}`}
+          onClick={() => setSlideIndex((prev) => getNextSlideIndex(prev, dotCount, 1))}
+          className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/95 hover:bg-[#F48721] text-[#475569] hover:text-white border border-[#E6E4DF] items-center justify-center shadow-sm opacity-0 group-hover/carousel:opacity-100 transition-all cursor-pointer"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+
+        <div className="overflow-hidden">
+          <div
+            data-testid={`${id}-track`}
+            data-slide-index={slideIndex}
+            style={{ '--slide-index': slideIndex } as React.CSSProperties}
+            className="prod-carousel-track flex gap-3 sm:gap-5 transition-transform duration-500 ease-out"
+          >
+            {trackItems.map((product, idx) => (
+              <div key={`${product.id}-slide-${idx}`} className="prod-carousel-item min-w-0 flex">
+                <div className="w-full flex flex-col [&>div]:flex-1">
+                  <ProductCard
+                    product={product}
+                    onAddToCart={onAddToCart}
+                    onBuyNow={onBuyNow}
+                    onSelectProduct={onSelectProduct}
+                    showBuyNow
+                    showStockStatus
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <PaginationDots count={dotCount} activeIndex={slideIndex} onChange={setSlideIndex} />
+    </section>
+  );
+};
+
+const EXTRA_FEATURED_CATEGORIES: FeaturedCategory[] = [
+  {
+    id: 'oil-ghee',
+    name: 'Oil & Ghee',
+    image: '/images/top-ghee.png',
+    targetSection: 'cooking-essentials',
+    categorySlug: 'oil-ghee',
+  },
+  {
+    id: 'offer-zone',
+    name: 'Offer Zone',
+    image: '/images/menu-honey-special-combo.png',
+    targetSection: 'just-for-you',
+    categorySlug: 'offer-zone',
+  },
+];
+
+const FEATURED_CAROUSEL_CATEGORIES: FeaturedCategory[] = [
+  ...FEATURED_CATEGORIES,
+  ...EXTRA_FEATURED_CATEGORIES,
+];
+
+const HONEY_CAROUSEL_ITEMS: Product[] = [
+  ...ALL_NATURAL_HONEY,
+  ...MENU_SUNDARBAN_PRODUCTS.filter(
+    (m) => !ALL_NATURAL_HONEY.some((a) => a.title === m.title)
+  ),
+];
+
+const COOKING_CAROUSEL_ITEMS: Product[] = [
+  ...COOKING_ESSENTIALS,
+  ...JUST_FOR_YOU.filter((p) => p.category === 'Oil & Ghee' && p.title.includes('Mustard')),
+  ...JUST_FOR_YOU.filter((p) => p.title.includes('Shahi Masala')),
+];
+
 export const HomeView: React.FC<HomeViewProps> = ({
   onAddToCart,
   onBuyNow,
   onOpenCategoryPage,
   onSelectProduct,
-  onShowToast,
 }) => {
+  const HERO_SLIDE_COUNT = 3;
+  const FEATURED_SLIDE_COUNT = FEATURED_CAROUSEL_CATEGORIES.length;
+
   const [heroDot, setHeroDot] = useState(0);
-  const [brandDot, setBrandDot] = useState(1);
-  const [honeyDot, setHoneyDot] = useState(2);
-  const [datesDot, setDatesDot] = useState(3);
-  const [cookingDot, setCookingDot] = useState(1);
-  const [organicDot, setOrganicDot] = useState(2);
-  const [testimonialDot, setTestimonialDot] = useState(2);
+  const [heroPaused, setHeroPaused] = useState(false);
+
+  const [featuredIndex, setFeaturedIndex] = useState(0);
+  const [featuredPaused, setFeaturedPaused] = useState(false);
+
+  const [brandDot, setBrandDot] = useState(0);
+  const [brandPaused, setBrandPaused] = useState(false);
+  const [testimonialDot, setTestimonialDot] = useState(0);
+  const [testimonialPaused, setTestimonialPaused] = useState(false);
   const [showExtraProducts, setShowExtraProducts] = useState(false);
+
+  useEffect(() => {
+    if (heroPaused) return;
+    const timer = window.setInterval(() => {
+      setHeroDot((prev) => getNextSlideIndex(prev, HERO_SLIDE_COUNT, 1));
+    }, 4000);
+    return () => window.clearInterval(timer);
+  }, [heroPaused]);
+
+  useEffect(() => {
+    if (featuredPaused) return;
+    const timer = window.setInterval(() => {
+      setFeaturedIndex((prev) => getNextSlideIndex(prev, FEATURED_SLIDE_COUNT, 1));
+    }, 3200);
+    return () => window.clearInterval(timer);
+  }, [FEATURED_SLIDE_COUNT, featuredPaused]);
+
+  useEffect(() => {
+    if (brandPaused) return;
+    const brandTimer = window.setInterval(() => {
+      setBrandDot((prev) => getNextSlideIndex(prev, BRANDS.length, 1));
+    }, 4600);
+    return () => window.clearInterval(brandTimer);
+  }, [brandPaused]);
+
+  useEffect(() => {
+    if (testimonialPaused) return;
+    const testimonialTimer = window.setInterval(() => {
+      setTestimonialDot((prev) => getNextSlideIndex(prev, TESTIMONIALS.length, 1));
+    }, 4800);
+    return () => window.clearInterval(testimonialTimer);
+  }, [testimonialPaused]);
+
+  const featuredTrack = [
+    ...FEATURED_CAROUSEL_CATEGORIES,
+    ...FEATURED_CAROUSEL_CATEGORIES.slice(0, 8),
+  ];
+
+  const brandTrack = [...BRANDS, ...BRANDS];
+  const testimonialTrack = [...TESTIMONIALS, ...TESTIMONIALS.slice(0, 3)];
 
   const justForYouItems = showExtraProducts
     ? [...JUST_FOR_YOU, ...ALL_NATURAL_HONEY.slice(0, 5)]
@@ -98,25 +275,128 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
   return (
     <main className="max-w-[1252px] mx-auto px-4 xl:px-0">
-      {/* Hero Banners */}
+      {/* Hero Banners (Auto-sliding 3-slide carousel + side promo banner) */}
       <section className="pt-4 sm:pt-[20px]">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5">
-          <div className="lg:col-span-8 relative rounded-[10px] overflow-hidden bg-[#1D2B1F]">
-            <img
-              src="/images/hero-main.png"
-              alt="অর্গানিক বিটরুট পাউডারের সাথে হানিরাজ লিচু ফ্লাওয়ার হানি স্যাশে বক্স ফ্রি"
-              referrerPolicy="no-referrer"
-              className="w-full h-full max-h-[332px] object-cover block"
-            />
-            <div className="absolute bottom-3.5 left-5 flex items-center gap-2">
+          <div
+            data-testid="hero-slider"
+            data-hero-slide={heroDot}
+            onMouseEnter={() => setHeroPaused(true)}
+            onMouseLeave={() => setHeroPaused(false)}
+            className="lg:col-span-8 relative rounded-[10px] overflow-hidden bg-[#1D2B1F] h-[168px] sm:h-[260px] lg:h-[332px] group"
+          >
+            <div
+              data-testid="hero-slider-track"
+              style={{ transform: `translateX(-${heroDot * 100}%)` }}
+              className="flex h-full transition-transform duration-700 ease-in-out"
+            >
+              {/* Slide 1: Main Ghorer Bazar Hero Banner */}
+              <button
+                type="button"
+                onClick={() => onOpenCategoryPage('organic')}
+                className="w-full h-full shrink-0 block cursor-pointer bg-[#233320]"
+                aria-label="অর্গানিক বিটরুট পাউডারের সাথে হানিরাজ লিচু ফ্লাওয়ার হানি স্যাশে বক্স ফ্রি"
+              >
+                <img
+                  src="/images/hero-main.png"
+                  alt="অর্গানিক বিটরুট পাউডারের সাথে হানিরাজ লিচু ফ্লাওয়ার হানি স্যাশে বক্স ফ্রি"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-contain lg:object-cover block"
+                />
+              </button>
+
+              {/* Slide 2: Swosti Food Ghee & Pure Essentials Banner */}
+              <button
+                type="button"
+                onClick={() => onOpenCategoryPage('oil-ghee')}
+                className="w-full h-full shrink-0 block cursor-pointer bg-[#EDEDE9]"
+                aria-label="স্বস্তি ফুড - খাবারে স্বাদ এবং প্রশান্তি"
+              >
+                <img
+                  src="/images/swosti-banner.png"
+                  alt="স্বস্তি ফুড - খাবারে স্বাদ এবং প্রশান্তি"
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-contain block"
+                />
+              </button>
+
+              {/* Slide 3: Ghorer Bazar Purity Combo Promotional Slide */}
+              <div className="w-full h-full shrink-0 bg-gradient-to-r from-[#041F1E] via-[#0B3533] to-[#134E4A] px-11 sm:px-12 pt-3 pb-7 sm:pt-6 sm:pb-9 flex items-center justify-between gap-3 sm:gap-5 relative">
+                <div className="min-w-0 flex-1 text-left z-10">
+                  <span className="inline-block bg-[#F48721] text-white text-[9px] sm:text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-[4px]">
+                    Ghorer Bazar Special
+                  </span>
+                  <h2 className="mt-1 sm:mt-2.5 text-[14px] sm:text-[22px] lg:text-[25px] font-bold text-white leading-[1.22]">
+                    খাঁটি ঘি, মধু ও সরিষার তেল
+                  </h2>
+                  <p className="mt-1 sm:mt-1.5 text-[10.5px] sm:text-[13px] text-white/90 leading-[1.4]">
+                    ১০০% বিশুদ্ধ ও ল্যাব-টেস্টেড প্রাকৃতিক পণ্যে বিশেষ ছাড়!
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => onOpenCategoryPage('offer-zone')}
+                    className="mt-2 sm:mt-3.5 inline-flex items-center gap-1.5 bg-[#F48721] hover:bg-[#E07614] text-white text-[10.5px] sm:text-[12.5px] font-semibold px-3 sm:px-4.5 py-1.5 sm:py-2 rounded-[5px] transition-colors cursor-pointer whitespace-nowrap"
+                  >
+                    <span>Shop Offer Zone</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-end gap-1.5 sm:gap-2.5 shrink-0">
+                  <div className="bg-white/95 rounded-[8px] p-1 sm:p-1.5 shadow-md flex items-center justify-center">
+                    <img
+                      src="/images/top-ghee.png"
+                      alt="Gawa Ghee"
+                      className="h-[68px] sm:h-[118px] lg:h-[145px] w-auto object-contain"
+                    />
+                  </div>
+                  <div className="bg-white/95 rounded-[8px] p-1 sm:p-1.5 shadow-md flex items-center justify-center">
+                    <img
+                      src="/images/top-sundarban-honey.png"
+                      alt="Sundarban Honey"
+                      className="h-[68px] sm:h-[118px] lg:h-[145px] w-auto object-contain"
+                    />
+                  </div>
+                  <div className="hidden sm:flex bg-white/95 rounded-[8px] p-1.5 shadow-md items-center justify-center">
+                    <img
+                      src="/images/top-mustard-oil.png"
+                      alt="Deshi Mustard Oil"
+                      className="h-[118px] lg:h-[145px] w-auto object-contain"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Prev / Next Hero Arrows */}
+            <button
+              type="button"
+              aria-label="Previous hero slide"
+              onClick={() => setHeroDot((prev) => getNextSlideIndex(prev, HERO_SLIDE_COUNT, -1))}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/35 hover:bg-[#F48721] text-white flex items-center justify-center opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-all cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Next hero slide"
+              onClick={() => setHeroDot((prev) => getNextSlideIndex(prev, HERO_SLIDE_COUNT, 1))}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/35 hover:bg-[#F48721] text-white flex items-center justify-center opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-all cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+
+            <div className="absolute bottom-2.5 sm:bottom-3 left-1/2 -translate-x-1/2 sm:left-5 sm:translate-x-0 flex items-center gap-2 z-10">
               {[0, 1, 2].map((idx) => (
                 <button
                   key={idx}
                   type="button"
                   aria-label={`Banner ${idx + 1}`}
                   onClick={() => setHeroDot(idx)}
-                  className={`w-2 h-2 rounded-full transition-colors cursor-pointer ${
-                    heroDot === idx ? 'bg-[#F48721]' : 'bg-white/80 hover:bg-white'
+                  className={`h-2 rounded-full transition-all cursor-pointer ${
+                    heroDot === idx
+                      ? 'w-5 bg-[#F48721]'
+                      : 'w-2 bg-white/80 hover:bg-white'
                   }`}
                 />
               ))}
@@ -126,21 +406,26 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <button
             type="button"
             onClick={() => onOpenCategoryPage('sundarban-honey')}
-            className="lg:col-span-4 rounded-[10px] overflow-hidden bg-[#2E1E14] block text-left cursor-pointer"
+            className="lg:col-span-4 rounded-[10px] overflow-hidden bg-[#2E1E14] block text-left cursor-pointer h-[185px] sm:h-[260px] lg:h-[332px]"
             aria-label="Explore Sundarban Honey and Combo Deals"
           >
             <img
               src="/images/hero-side.png"
               alt="মধু স্পেশাল কম্বোপ্যাক-এ ২০০ ছাড়"
               referrerPolicy="no-referrer"
-              className="w-full h-full max-h-[220px] sm:max-h-[280px] lg:max-h-[332px] object-cover object-top block"
+              className="w-full h-full object-cover object-top block"
             />
           </button>
         </div>
       </section>
 
-      {/* Featured Categories */}
-      <section id="featured-categories" className="pt-7 pb-4">
+      {/* Featured Categories (Auto-sliding Carousel) */}
+      <section
+        id="featured-categories"
+        className="pt-7 pb-4"
+        onMouseEnter={() => setFeaturedPaused(true)}
+        onMouseLeave={() => setFeaturedPaused(false)}
+      >
         <h2 className="text-[18px] sm:text-[20px] font-medium text-[#222933] text-center mb-5 sm:mb-6">
           Featured Categories
         </h2>
@@ -148,41 +433,52 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <button
             type="button"
             aria-label="Previous categories"
-            onClick={() => onShowToast('Showing all featured categories')}
-            className="hidden xl:flex absolute -left-4 top-[56px] z-10 w-8 h-8 rounded-full bg-[#F48721] hover:bg-[#E07614] text-white items-center justify-center shadow-sm cursor-pointer transition-colors"
+            onClick={() =>
+              setFeaturedIndex((prev) => getNextSlideIndex(prev, FEATURED_SLIDE_COUNT, -1))
+            }
+            className="flex absolute -left-2 xl:-left-4 top-[50px] sm:top-[56px] z-10 w-8 h-8 rounded-full bg-[#F48721] hover:bg-[#E07614] text-white items-center justify-center shadow-sm cursor-pointer transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             type="button"
             aria-label="Next categories"
-            onClick={() => onShowToast('Showing all featured categories')}
-            className="hidden xl:flex absolute -right-4 top-[56px] z-10 w-8 h-8 rounded-full bg-[#F48721] hover:bg-[#E07614] text-white items-center justify-center shadow-sm cursor-pointer transition-colors"
+            onClick={() =>
+              setFeaturedIndex((prev) => getNextSlideIndex(prev, FEATURED_SLIDE_COUNT, 1))
+            }
+            className="flex absolute -right-2 xl:-right-4 top-[50px] sm:top-[56px] z-10 w-8 h-8 rounded-full bg-[#F48721] hover:bg-[#E07614] text-white items-center justify-center shadow-sm cursor-pointer transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3.5 sm:gap-[18px]">
-            {FEATURED_CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => onOpenCategoryPage(cat.categorySlug)}
-                className="group flex flex-col items-center cursor-pointer"
-              >
-                <div className="w-full h-[116px] sm:h-[142px] bg-white rounded-[10px] border border-[#ECEAE4] shadow-[0_1px_4px_rgba(0,0,0,0.03)] flex items-center justify-center p-2.5 group-hover:border-[#F48721]/60 transition-colors">
-                  <img
-                    src={cat.image}
-                    alt={cat.name}
-                    referrerPolicy="no-referrer"
-                    className="max-h-[92px] sm:max-h-[112px] max-w-full object-contain"
-                  />
-                </div>
-                <span className="mt-2.5 sm:mt-3 text-[13px] sm:text-[13.5px] font-medium text-[#374151] group-hover:text-[#F48721] transition-colors">
-                  {cat.name}
-                </span>
-              </button>
-            ))}
+          <div className="overflow-hidden">
+            <div
+              data-testid="featured-categories-track"
+              data-slide-index={featuredIndex}
+              style={{ '--slide-index': featuredIndex } as React.CSSProperties}
+              className="cat-carousel-track flex gap-3.5 sm:gap-[18px] transition-transform duration-500 ease-out"
+            >
+              {featuredTrack.map((cat, idx) => (
+                <button
+                  key={`${cat.id}-${idx}`}
+                  type="button"
+                  onClick={() => onOpenCategoryPage(cat.categorySlug)}
+                  className="cat-carousel-item group flex flex-col items-center cursor-pointer"
+                >
+                  <div className="w-full h-[116px] sm:h-[142px] bg-white rounded-[10px] border border-[#ECEAE4] shadow-[0_1px_4px_rgba(0,0,0,0.03)] flex items-center justify-center p-2.5 group-hover:border-[#F48721]/60 transition-colors">
+                    <img
+                      src={cat.image}
+                      alt={cat.name}
+                      referrerPolicy="no-referrer"
+                      className="max-h-[92px] sm:max-h-[112px] max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                  <span className="mt-2.5 sm:mt-3 text-[13px] sm:text-[13.5px] font-medium text-[#374151] group-hover:text-[#F48721] transition-colors whitespace-nowrap">
+                    {cat.name}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -308,136 +604,133 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
       </section>
 
-      {/* Our Brands */}
-      <section id="our-brands" className="pt-8 pb-4">
+      {/* Our Brands (Horizontal Auto-Sliding Carousel) */}
+      <section
+        id="our-brands"
+        className="pt-8 pb-4"
+        onMouseEnter={() => setBrandPaused(true)}
+        onMouseLeave={() => setBrandPaused(false)}
+      >
         <SectionHeader
           title="Our Brands"
           actionLabel="SEE ALL"
           onAction={() => onOpenCategoryPage('all-products')}
         />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-6">
-          {BRANDS.map((brand) => (
-            <button
-              key={brand.id}
-              type="button"
-              onClick={() => onOpenCategoryPage(brand.id === 'honeyraj' ? 'sundarban-honey' : 'all-products')}
-              className="bg-white rounded-[8px] border border-[#EAE8E2] h-[80px] sm:h-[90px] flex items-center justify-center px-4 sm:px-5 hover:border-[#F48721]/50 transition-colors cursor-pointer"
+        <div className="relative group/brands">
+          <button
+            type="button"
+            aria-label="Previous brand"
+            onClick={() => setBrandDot((prev) => getNextSlideIndex(prev, BRANDS.length, -1))}
+            className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/95 hover:bg-[#F48721] text-[#475569] hover:text-white border border-[#E6E4DF] items-center justify-center shadow-sm opacity-0 group-hover/brands:opacity-100 transition-all cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Next brand"
+            onClick={() => setBrandDot((prev) => getNextSlideIndex(prev, BRANDS.length, 1))}
+            className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/95 hover:bg-[#F48721] text-[#475569] hover:text-white border border-[#E6E4DF] items-center justify-center shadow-sm opacity-0 group-hover/brands:opacity-100 transition-all cursor-pointer"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+
+          <div className="overflow-hidden">
+            <div
+              data-testid="brands-carousel-track"
+              data-slide-index={brandDot}
+              style={{ '--slide-index': brandDot } as React.CSSProperties}
+              className="brand-carousel-track flex gap-3.5 md:gap-6 transition-transform duration-500 ease-out"
             >
-              <img
-                src={brand.image}
-                alt={brand.name}
-                referrerPolicy="no-referrer"
-                className="max-h-[54px] sm:max-h-[68px] max-w-full object-contain"
-              />
-            </button>
-          ))}
+              {brandTrack.map((brand, idx) => (
+                <button
+                  key={`${brand.id}-${idx}`}
+                  type="button"
+                  onClick={() =>
+                    onOpenCategoryPage(brand.id === 'honeyraj' ? 'sundarban-honey' : 'all-products')
+                  }
+                  className="brand-carousel-item bg-white rounded-[8px] border border-[#EAE8E2] h-[80px] sm:h-[90px] flex items-center justify-center px-4 sm:px-5 hover:border-[#F48721]/50 transition-colors cursor-pointer"
+                >
+                  <img
+                    src={brand.image}
+                    alt={brand.name}
+                    referrerPolicy="no-referrer"
+                    className="max-h-[54px] sm:max-h-[68px] max-w-full object-contain"
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <PaginationDots count={2} activeIndex={brandDot} onChange={setBrandDot} />
+        <PaginationDots count={BRANDS.length} activeIndex={brandDot} onChange={setBrandDot} />
       </section>
 
-      {/* All Natural Honey */}
-      <section id="all-natural-honey" className="pt-8 pb-4">
-        <SectionHeader
-          title="All Natural Honey"
-          actionLabel="VIEW ALL ITEMS"
-          onAction={() => onOpenCategoryPage('sundarban-honey')}
-        />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5">
-          {ALL_NATURAL_HONEY.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onAddToCart={onAddToCart}
-              onBuyNow={onBuyNow}
-              onSelectProduct={onSelectProduct}
-              showBuyNow
-              showStockStatus
-            />
-          ))}
-        </div>
-        <PaginationDots count={5} activeIndex={honeyDot} onChange={setHoneyDot} />
-      </section>
+      {/* All Natural Honey (Auto-sliding Carousel) */}
+      <SlidingProductSection
+        id="all-natural-honey"
+        title="All Natural Honey"
+        items={HONEY_CAROUSEL_ITEMS}
+        dotCount={5}
+        intervalMs={3800}
+        onAction={() => onOpenCategoryPage('sundarban-honey')}
+        onAddToCart={onAddToCart}
+        onBuyNow={onBuyNow}
+        onSelectProduct={onSelectProduct}
+      />
 
-      {/* Premium Dates */}
-      <section id="premium-dates" className="pt-8 pb-4">
-        <SectionHeader
-          title="Premium Dates"
-          actionLabel="VIEW ALL ITEMS"
-          onAction={() => onOpenCategoryPage('dates')}
-        />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5">
-          {PREMIUM_DATES.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onAddToCart={onAddToCart}
-              onBuyNow={onBuyNow}
-              onSelectProduct={onSelectProduct}
-              showBuyNow
-              showStockStatus
-            />
-          ))}
-        </div>
-        <PaginationDots count={6} activeIndex={datesDot} onChange={setDatesDot} />
-      </section>
+      {/* Premium Dates (Auto-sliding Carousel) */}
+      <SlidingProductSection
+        id="premium-dates"
+        title="Premium Dates"
+        items={PREMIUM_DATES}
+        dotCount={5}
+        intervalMs={4200}
+        onAction={() => onOpenCategoryPage('dates')}
+        onAddToCart={onAddToCart}
+        onBuyNow={onBuyNow}
+        onSelectProduct={onSelectProduct}
+      />
 
       {/* Mid-Page Swosti Banner */}
       <section className="pt-8 sm:pt-10 pb-2">
-        <div className="rounded-[8px] overflow-hidden">
+        <button
+          type="button"
+          onClick={() => onOpenCategoryPage('oil-ghee')}
+          className="w-full rounded-[8px] overflow-hidden block cursor-pointer"
+        >
           <img
             src="/images/swosti-banner.png"
             alt="স্বস্তি ফুড - খাবারে স্বাদ এবং প্রশান্তি"
             referrerPolicy="no-referrer"
             className="w-full h-auto block"
           />
-        </div>
+        </button>
       </section>
 
-      {/* Cooking Essentials */}
-      <section id="cooking-essentials" className="pt-8 pb-4">
-        <SectionHeader
-          title="Cooking Essentials"
-          actionLabel="VIEW ALL ITEMS"
-          onAction={() => onOpenCategoryPage('cooking-essentials')}
-        />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5">
-          {COOKING_ESSENTIALS.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onAddToCart={onAddToCart}
-              onBuyNow={onBuyNow}
-              onSelectProduct={onSelectProduct}
-              showBuyNow
-              showStockStatus
-            />
-          ))}
-        </div>
-        <PaginationDots count={5} activeIndex={cookingDot} onChange={setCookingDot} />
-      </section>
+      {/* Cooking Essentials (Auto-sliding Carousel) */}
+      <SlidingProductSection
+        id="cooking-essentials"
+        title="Cooking Essentials"
+        items={COOKING_CAROUSEL_ITEMS}
+        dotCount={5}
+        intervalMs={4400}
+        onAction={() => onOpenCategoryPage('cooking-essentials')}
+        onAddToCart={onAddToCart}
+        onBuyNow={onBuyNow}
+        onSelectProduct={onSelectProduct}
+      />
 
-      {/* Organic Certified */}
-      <section id="organic-certified" className="pt-8 pb-4">
-        <SectionHeader
-          title="Organic Certified"
-          actionLabel="VIEW ALL ITEMS"
-          onAction={() => onOpenCategoryPage('organic')}
-        />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5">
-          {ORGANIC_CERTIFIED.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onAddToCart={onAddToCart}
-              onBuyNow={onBuyNow}
-              onSelectProduct={onSelectProduct}
-              showBuyNow
-              showStockStatus
-            />
-          ))}
-        </div>
-        <PaginationDots count={5} activeIndex={organicDot} onChange={setOrganicDot} />
-      </section>
+      {/* Organic Certified (Auto-sliding Carousel) */}
+      <SlidingProductSection
+        id="organic-certified"
+        title="Organic Certified"
+        items={ORGANIC_CERTIFIED}
+        dotCount={5}
+        intervalMs={4100}
+        onAction={() => onOpenCategoryPage('organic')}
+        onAddToCart={onAddToCart}
+        onBuyNow={onBuyNow}
+        onSelectProduct={onSelectProduct}
+      />
 
       {/* Just For You */}
       <section id="just-for-you" className="pt-8 pb-4">
@@ -470,38 +763,93 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="pt-10 pb-12 sm:pb-14">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-          {TESTIMONIALS.map((t) => (
+      {/* Customer Reviews / Testimonials (Side-by-Side Horizontal Carousel on PC & Mobile) */}
+      <section
+        id="customer-reviews"
+        className="pt-10 pb-12 sm:pb-14"
+        onMouseEnter={() => setTestimonialPaused(true)}
+        onMouseLeave={() => setTestimonialPaused(false)}
+      >
+        <h2 className="text-[18px] sm:text-[20px] font-medium text-[#222933] text-center mb-5 sm:mb-6">
+          Customer Reviews
+        </h2>
+
+        <div className="relative group/reviews">
+          <button
+            type="button"
+            aria-label="Previous review"
+            onClick={() =>
+              setTestimonialDot((prev) => getNextSlideIndex(prev, TESTIMONIALS.length, -1))
+            }
+            className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/95 hover:bg-[#F48721] text-[#475569] hover:text-white border border-[#E6E4DF] items-center justify-center shadow-sm opacity-0 group-hover/reviews:opacity-100 transition-all cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Next review"
+            onClick={() =>
+              setTestimonialDot((prev) => getNextSlideIndex(prev, TESTIMONIALS.length, 1))
+            }
+            className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/95 hover:bg-[#F48721] text-[#475569] hover:text-white border border-[#E6E4DF] items-center justify-center shadow-sm opacity-0 group-hover/reviews:opacity-100 transition-all cursor-pointer"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+
+          <div className="overflow-hidden">
             <div
-              key={t.id}
-              className="bg-white rounded-[10px] border border-[#EAE8E2] p-5 sm:p-6 flex flex-col justify-between min-h-[210px] sm:min-h-[244px] shadow-[0_1px_3px_rgba(0,0,0,0.02)]"
+              data-testid="reviews-carousel-track"
+              data-slide-index={testimonialDot}
+              style={{ '--slide-index': testimonialDot } as React.CSSProperties}
+              className="review-carousel-track flex gap-3 md:gap-5 transition-transform duration-500 ease-out"
             >
-              <div>
-                <p className="text-[13.5px] text-[#4B5563] leading-[1.6]">{t.quote}</p>
-                <div className="flex items-center gap-0.5 mt-4">
-                  {Array.from({ length: t.rating }).map((_, i) => (
-                    <Star key={i} className="w-3.5 h-3.5 fill-[#F59E0B] text-[#F59E0B]" />
-                  ))}
+              {testimonialTrack.map((t, idx) => (
+                <div
+                  key={`${t.id}-${idx}`}
+                  data-testid={`review-slide-card-${idx}`}
+                  className="review-carousel-item min-w-0 flex"
+                >
+                  <div className="w-full bg-white rounded-[10px] border border-[#EAE8E2] p-3.5 sm:p-6 flex flex-col justify-between min-h-[215px] sm:min-h-[244px] shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+                    <div>
+                      <p className="text-[12px] sm:text-[13.5px] text-[#4B5563] leading-[1.5] sm:leading-[1.6]">
+                        {t.quote}
+                      </p>
+                      <div className="flex items-center gap-0.5 mt-3 sm:mt-4">
+                        {Array.from({ length: t.rating }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-[#F59E0B] text-[#F59E0B]"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5 sm:gap-3.5 mt-4 sm:mt-5">
+                      <img
+                        src={t.avatar}
+                        alt={t.name}
+                        referrerPolicy="no-referrer"
+                        className="w-[42px] h-[42px] sm:w-[60px] sm:h-[60px] rounded-full object-cover shrink-0 bg-[#F3F4F6]"
+                      />
+                      <div className="min-w-0">
+                        <h4 className="text-[12.5px] sm:text-[14px] font-medium text-[#222933] truncate">
+                          {t.name}
+                        </h4>
+                        <p className="text-[10.5px] sm:text-[11.5px] text-[#6B7280] truncate">
+                          {t.role}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3.5 mt-5">
-                <img
-                  src={t.avatar}
-                  alt={t.name}
-                  referrerPolicy="no-referrer"
-                  className="w-[56px] h-[56px] sm:w-[62px] sm:h-[62px] rounded-full object-cover shrink-0 bg-[#F3F4F6]"
-                />
-                <div>
-                  <h4 className="text-[14px] font-medium text-[#222933]">{t.name}</h4>
-                  <p className="text-[11.5px] text-[#6B7280]">{t.role}</p>
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
-        <PaginationDots count={3} activeIndex={testimonialDot} onChange={setTestimonialDot} />
+        <PaginationDots
+          count={TESTIMONIALS.length}
+          activeIndex={testimonialDot}
+          onChange={setTestimonialDot}
+        />
       </section>
     </main>
   );

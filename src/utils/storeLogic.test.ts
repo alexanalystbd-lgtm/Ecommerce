@@ -7,6 +7,7 @@ import {
   computeReviewSummary,
   filterAndSortCategoryProducts,
   getCartTotals,
+  getNextSlideIndex,
   searchCatalog,
   updateCartQuantity,
 } from './storeLogic';
@@ -165,4 +166,11 @@ test('getProductDetailInfo provides tailored shortDescription per product catego
   assert.ok(getProductDetailInfo(ghee).shortDescription.toLowerCase().includes('cow ghee'));
   assert.ok(getProductDetailInfo(honey).shortDescription.toLowerCase().includes('raw, unfiltered'));
   assert.ok(getProductDetailInfo(dates).shortDescription.toLowerCase().includes('grade-a'));
+});
+
+test('getNextSlideIndex wraps cleanly forward and backward across slide boundaries', () => {
+  assert.equal(getNextSlideIndex(0, 3, 1), 1);
+  assert.equal(getNextSlideIndex(2, 3, 1), 0);
+  assert.equal(getNextSlideIndex(0, 3, -1), 2);
+  assert.equal(getNextSlideIndex(0, 0, 1), 0);
 });

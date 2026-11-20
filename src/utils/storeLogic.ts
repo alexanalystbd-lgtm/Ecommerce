@@ -135,3 +135,8 @@ export function computeReviewSummary(reviews: ProductReview[]): {
   });
   return { totalReviews, averageRating, recommendedCount, recommendedPct, breakdown };
 }
+
+export function getNextSlideIndex(current: number, totalSlides: number, delta = 1): number {
+  if (totalSlides <= 0) return 0;
+  return ((current + delta) % totalSlides + totalSlides) % totalSlides;
+}

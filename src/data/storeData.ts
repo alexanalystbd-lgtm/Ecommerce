@@ -473,6 +473,22 @@ export const TESTIMONIALS: Testimonial[] = [
     avatar: '/images/avatar-sultana.png',
     rating: 5,
   },
+  {
+    id: 't4',
+    quote: 'গাওয়া ঘি আর সুন্দরবনের মধুর ঘ্রাণ ও স্বাদ একদম খাঁটি। পরিবারের সবার খুব পছন্দ হয়েছে।',
+    name: 'Nusrat Jahan',
+    role: 'Teacher',
+    avatar: '/images/avatar-fariha.png',
+    rating: 5,
+  },
+  {
+    id: 't5',
+    quote: 'দেশি সরিষার তেল ও খেজুর নিয়মিত অর্ডার করি। প্যাকিং এবং ডেলিভারি সার্ভিস দারুণ।',
+    name: 'Tasnim Rahman',
+    role: 'Architect',
+    avatar: '/images/avatar-ayesha.png',
+    rating: 5,
+  },
 ];
 
 export const FOOTER_COLUMNS: FooterColumn[] = [

@@ -138,7 +138,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Center Search Bar (Desktop) */}
           <div ref={desktopSearchRef} className="relative flex-1 max-w-[446px] mx-4 hidden md:block">
-            <div className="flex items-center bg-[#F5F5F5] rounded-[6px] h-[42px] pl-4 overflow-hidden">
+            <div className="flex items-center bg-[#F5F5F5] border border-transparent focus-within:border-[#F48721] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#F48721]/20 rounded-[6px] h-[42px] pl-4 overflow-hidden transition-all">
               <input
                 type="text"
                 value={searchQuery}
@@ -245,8 +245,9 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Mobile Search Bar Row */}
         <div ref={mobileSearchRef} className="relative pb-3 md:hidden">
-          <div className="flex items-center bg-[#F5F5F5] rounded-[6px] h-[40px] pl-3.5 overflow-hidden">
+          <div className="flex items-center bg-[#F5F5F5] border border-transparent focus-within:border-[#F48721] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#F48721]/20 rounded-[6px] h-[40px] pl-3.5 overflow-hidden transition-all">
             <input
+              id="mobile-search-input"
               type="text"
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}

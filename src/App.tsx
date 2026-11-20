@@ -12,6 +12,7 @@ import { ProductDetailView } from './components/ProductDetailView';
 import { Footer } from './components/Footer';
 import { CartDrawer } from './components/CartDrawer';
 import { UtilityModal } from './components/UtilityModal';
+import { MobileBottomNav } from './components/MobileBottomNav';
 
 function getInitialRoute(): { view: ActiveView; slug: string; product: Product | null } {
   if (typeof window !== 'undefined') {
@@ -161,6 +162,14 @@ export default function App() {
     document.getElementById('footer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const handleFocusMobileSearch = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.setTimeout(() => {
+      const input = document.getElementById('mobile-search-input') as HTMLInputElement | null;
+      input?.focus();
+    }, 250);
+  };
+
   return (
     <div id="top" className="min-h-screen bg-[#FBF9F5] text-[#222933] relative">
       <Header
@@ -244,7 +253,7 @@ export default function App() {
           type="button"
           onClick={scrollToTop}
           aria-label="Scroll to top"
-          className="fixed bottom-[62px] sm:bottom-[70px] right-3 sm:right-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#F48721] hover:bg-[#E07614] text-white shadow-md flex items-center justify-center transition-colors cursor-pointer z-30"
+          className="fixed bottom-[122px] md:bottom-[70px] right-3 sm:right-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#F48721] hover:bg-[#E07614] text-white shadow-md flex items-center justify-center transition-colors cursor-pointer z-30"
         >
           <ChevronUp className="w-5 h-5" />
         </button>
@@ -254,7 +263,7 @@ export default function App() {
         type="button"
         onClick={() => setActiveModal('chat')}
         aria-label="Open support chat"
-        className="fixed bottom-3 sm:bottom-4 right-3 sm:right-4 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#F48721] hover:bg-[#E07614] text-white shadow-lg flex items-center justify-center transition-colors cursor-pointer z-30"
+        className="fixed bottom-[70px] md:bottom-4 right-3 sm:right-4 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#F48721] hover:bg-[#E07614] text-white shadow-lg flex items-center justify-center transition-colors cursor-pointer z-30"
       >
         <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
       </button>
@@ -263,12 +272,21 @@ export default function App() {
       {toastMessage && (
         <div
           role="status"
-          className="fixed bottom-4 left-4 z-50 bg-[#041F1E] text-white text-[13px] px-4 py-2.5 rounded-lg shadow-lg flex items-center gap-2 max-w-[calc(100vw-80px)]"
+          className="fixed bottom-[70px] md:bottom-4 left-4 z-50 bg-[#041F1E] text-white text-[13px] px-4 py-2.5 rounded-lg shadow-lg flex items-center gap-2 max-w-[calc(100vw-80px)]"
         >
           <CheckCircle2 className="w-4 h-4 text-[#F48721] shrink-0" />
           <span className="truncate">{toastMessage}</span>
         </div>
       )}
+
+      <MobileBottomNav
+        totalCartItems={totalItems}
+        onGoHome={handleGoHome}
+        onOpenMenu={() => setIsMobileMenuOpen(true)}
+        onOpenCart={() => setIsCartOpen(true)}
+        onFocusSearch={handleFocusMobileSearch}
+        onOpenAccount={() => setActiveModal('signin')}
+      />
 
       <CartDrawer
         isOpen={isCartOpen}
