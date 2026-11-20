@@ -41,7 +41,7 @@ export const SecondaryNav: React.FC<SecondaryNavProps> = ({
   };
 
   return (
-    <nav className="bg-[#041F1E] text-white relative z-20" aria-label="Primary categories">
+    <nav className="hidden md:block bg-[#041F1E] text-white relative z-20" aria-label="Primary categories">
       <div className="max-w-[1252px] mx-auto px-4 xl:px-0 min-h-[48px] flex items-center gap-6 overflow-x-auto lg:overflow-visible no-scrollbar">
         {NAV_CATEGORIES.map((item) => {
           const isActive = activeView === 'category' && activeNavLabel === item.label;
@@ -214,14 +214,24 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({
           })}
         </div>
 
-        <div className="p-4 border-t border-[#EAE8E3] bg-[#FBF9F5] grid grid-cols-2 gap-2.5">
+        <div className="p-4 border-t border-[#EAE8E3] bg-[#FBF9F5] grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onOpenModal('signin');
+            }}
+            className="border border-[#E6E4DF] bg-white rounded-md py-2 text-[12px] font-medium text-[#222933] hover:border-[#F48721] cursor-pointer"
+          >
+            Sign In
+          </button>
           <button
             type="button"
             onClick={() => {
               onClose();
               onOpenModal('wishlist');
             }}
-            className="border border-[#E6E4DF] bg-white rounded-md py-2 text-[12.5px] font-medium text-[#222933] hover:border-[#F48721] cursor-pointer"
+            className="border border-[#E6E4DF] bg-white rounded-md py-2 text-[12px] font-medium text-[#222933] hover:border-[#F48721] cursor-pointer"
           >
             Wishlist
           </button>
@@ -231,7 +241,7 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({
               onClose();
               onOpenModal('track');
             }}
-            className="bg-[#F48721] text-white rounded-md py-2 text-[12.5px] font-medium hover:bg-[#E07614] cursor-pointer"
+            className="bg-[#F48721] text-white rounded-md py-2 text-[12px] font-medium hover:bg-[#E07614] cursor-pointer"
           >
             Track Order
           </button>

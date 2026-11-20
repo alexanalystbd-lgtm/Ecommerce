@@ -17,7 +17,7 @@ export const FloatingCartTab: React.FC<FloatingCartTabProps> = ({
       type="button"
       onClick={onOpenCart}
       aria-label="Open shopping cart"
-      className="hidden sm:block fixed right-0 top-[265px] z-30 shadow-md rounded-l-md overflow-hidden cursor-pointer group"
+      className="hidden md:block fixed right-0 top-[265px] z-30 shadow-md rounded-l-md overflow-hidden cursor-pointer group"
     >
       <div className="bg-[#F48721] group-hover:bg-[#E07614] transition-colors text-white px-2.5 py-2 flex flex-col items-center">
         <ShoppingBag className="w-5 h-5 mb-0.5" />

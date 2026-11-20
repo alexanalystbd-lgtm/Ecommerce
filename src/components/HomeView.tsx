@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight, Flame, ShoppingCart, Star } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ArrowRight, Flame, ShoppingCart, Star } from 'lucide-react';
 import {
   ALL_NATURAL_HONEY,
   BRANDS,
@@ -91,6 +91,85 @@ interface SlidingProductSectionProps {
   onSelectProduct: (product: Product) => void;
 }
 
+function useHorizontalDrag(onPrev: () => void, onNext: () => void) {
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const didDragRef = useRef(false);
+  const onPrevRef = useRef(onPrev);
+  const onNextRef = useRef(onNext);
+  onPrevRef.current = onPrev;
+  onNextRef.current = onNext;
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    if ((e.target as HTMLElement).closest('[data-no-drag="true"]')) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let lastDx = 0;
+    let lastDy = 0;
+    let isHorizontalDrag = false;
+    didDragRef.current = false;
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      lastDx = dx;
+      lastDy = dy;
+
+      if (!isHorizontalDrag && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+        isHorizontalDrag = true;
+        didDragRef.current = true;
+        setIsDragging(true);
+      }
+
+      if (isHorizontalDrag) {
+        setDragOffset(dx);
+      }
+    };
+
+    const onPointerUpOrCancel = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUpOrCancel);
+      window.removeEventListener('pointercancel', onPointerUpOrCancel);
+      setIsDragging(false);
+      setDragOffset(0);
+
+      if (Math.abs(lastDx) > 36 && Math.abs(lastDx) > Math.abs(lastDy)) {
+        if (lastDx > 0) {
+          onPrevRef.current();
+        } else {
+          onNextRef.current();
+        }
+      }
+
+      window.setTimeout(() => {
+        didDragRef.current = false;
+      }, 0);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUpOrCancel);
+    window.addEventListener('pointercancel', onPointerUpOrCancel);
+  };
+
+  return {
+    dragOffset,
+    isDragging,
+    dragHandlers: {
+      onPointerDown: handlePointerDown,
+      onDragStart: (e: React.DragEvent) => e.preventDefault(),
+      onClickCapture: (e: React.MouseEvent) => {
+        if (didDragRef.current) {
+          e.preventDefault();
+          e.stopPropagation();
+          didDragRef.current = false;
+        }
+      },
+    },
+  };
+}
+
 const SlidingProductSection: React.FC<SlidingProductSectionProps> = ({
   id,
   title,
@@ -106,13 +185,18 @@ const SlidingProductSection: React.FC<SlidingProductSectionProps> = ({
   const [slideIndex, setSlideIndex] = useState(initialDot % dotCount);
   const [isPaused, setIsPaused] = useState(false);
 
+  const { dragOffset, isDragging, dragHandlers } = useHorizontalDrag(
+    () => setSlideIndex((prev) => getNextSlideIndex(prev, dotCount, -1)),
+    () => setSlideIndex((prev) => getNextSlideIndex(prev, dotCount, 1))
+  );
+
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || isDragging) return;
     const timer = window.setInterval(() => {
       setSlideIndex((prev) => getNextSlideIndex(prev, dotCount, 1));
     }, intervalMs);
     return () => window.clearInterval(timer);
-  }, [dotCount, intervalMs, isPaused]);
+  }, [dotCount, intervalMs, isPaused, isDragging]);
 
   const trackItems = [...items, ...items.slice(0, 5)];
 
@@ -125,46 +209,37 @@ const SlidingProductSection: React.FC<SlidingProductSectionProps> = ({
     >
       <SectionHeader title={title} actionLabel="VIEW ALL ITEMS" onAction={onAction} />
 
-      <div className="relative group/carousel">
-        <button
-          type="button"
-          aria-label={`Previous ${title}`}
-          onClick={() => setSlideIndex((prev) => getNextSlideIndex(prev, dotCount, -1))}
-          className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/95 hover:bg-[#F48721] text-[#475569] hover:text-white border border-[#E6E4DF] items-center justify-center shadow-sm opacity-0 group-hover/carousel:opacity-100 transition-all cursor-pointer"
+      <div
+        className="overflow-hidden touch-pan-y select-none cursor-grab active:cursor-grabbing"
+        {...dragHandlers}
+      >
+        <div
+          data-testid={`${id}-track`}
+          data-slide-index={slideIndex}
+          style={
+            {
+              '--slide-index': slideIndex,
+              '--drag-offset': `${dragOffset}px`,
+            } as React.CSSProperties
+          }
+          className={`prod-carousel-track flex gap-3 sm:gap-5 ${
+            isDragging ? 'transition-none' : 'transition-transform duration-500 ease-out'
+          }`}
         >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          aria-label={`Next ${title}`}
-          onClick={() => setSlideIndex((prev) => getNextSlideIndex(prev, dotCount, 1))}
-          className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/95 hover:bg-[#F48721] text-[#475569] hover:text-white border border-[#E6E4DF] items-center justify-center shadow-sm opacity-0 group-hover/carousel:opacity-100 transition-all cursor-pointer"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
-
-        <div className="overflow-hidden">
-          <div
-            data-testid={`${id}-track`}
-            data-slide-index={slideIndex}
-            style={{ '--slide-index': slideIndex } as React.CSSProperties}
-            className="prod-carousel-track flex gap-3 sm:gap-5 transition-transform duration-500 ease-out"
-          >
-            {trackItems.map((product, idx) => (
-              <div key={`${product.id}-slide-${idx}`} className="prod-carousel-item min-w-0 flex">
-                <div className="w-full flex flex-col [&>div]:flex-1">
-                  <ProductCard
-                    product={product}
-                    onAddToCart={onAddToCart}
-                    onBuyNow={onBuyNow}
-                    onSelectProduct={onSelectProduct}
-                    showBuyNow
-                    showStockStatus
-                  />
-                </div>
+          {trackItems.map((product, idx) => (
+            <div key={`${product.id}-slide-${idx}`} className="prod-carousel-item min-w-0 flex">
+              <div className="w-full flex flex-col [&>div]:flex-1">
+                <ProductCard
+                  product={product}
+                  onAddToCart={onAddToCart}
+                  onBuyNow={onBuyNow}
+                  onSelectProduct={onSelectProduct}
+                  showBuyNow
+                  showStockStatus
+                />
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -229,37 +304,54 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const [testimonialPaused, setTestimonialPaused] = useState(false);
   const [showExtraProducts, setShowExtraProducts] = useState(false);
 
+  const heroDrag = useHorizontalDrag(
+    () => setHeroDot((prev) => getNextSlideIndex(prev, HERO_SLIDE_COUNT, -1)),
+    () => setHeroDot((prev) => getNextSlideIndex(prev, HERO_SLIDE_COUNT, 1))
+  );
+  const featuredDrag = useHorizontalDrag(
+    () => setFeaturedIndex((prev) => getNextSlideIndex(prev, FEATURED_SLIDE_COUNT, -1)),
+    () => setFeaturedIndex((prev) => getNextSlideIndex(prev, FEATURED_SLIDE_COUNT, 1))
+  );
+  const brandDrag = useHorizontalDrag(
+    () => setBrandDot((prev) => getNextSlideIndex(prev, BRANDS.length, -1)),
+    () => setBrandDot((prev) => getNextSlideIndex(prev, BRANDS.length, 1))
+  );
+  const testimonialDrag = useHorizontalDrag(
+    () => setTestimonialDot((prev) => getNextSlideIndex(prev, TESTIMONIALS.length, -1)),
+    () => setTestimonialDot((prev) => getNextSlideIndex(prev, TESTIMONIALS.length, 1))
+  );
+
   useEffect(() => {
-    if (heroPaused) return;
+    if (heroPaused || heroDrag.isDragging) return;
     const timer = window.setInterval(() => {
       setHeroDot((prev) => getNextSlideIndex(prev, HERO_SLIDE_COUNT, 1));
     }, 4000);
     return () => window.clearInterval(timer);
-  }, [heroPaused]);
+  }, [heroPaused, heroDrag.isDragging]);
 
   useEffect(() => {
-    if (featuredPaused) return;
+    if (featuredPaused || featuredDrag.isDragging) return;
     const timer = window.setInterval(() => {
       setFeaturedIndex((prev) => getNextSlideIndex(prev, FEATURED_SLIDE_COUNT, 1));
     }, 3200);
     return () => window.clearInterval(timer);
-  }, [FEATURED_SLIDE_COUNT, featuredPaused]);
+  }, [FEATURED_SLIDE_COUNT, featuredPaused, featuredDrag.isDragging]);
 
   useEffect(() => {
-    if (brandPaused) return;
+    if (brandPaused || brandDrag.isDragging) return;
     const brandTimer = window.setInterval(() => {
       setBrandDot((prev) => getNextSlideIndex(prev, BRANDS.length, 1));
     }, 4600);
     return () => window.clearInterval(brandTimer);
-  }, [brandPaused]);
+  }, [brandPaused, brandDrag.isDragging]);
 
   useEffect(() => {
-    if (testimonialPaused) return;
+    if (testimonialPaused || testimonialDrag.isDragging) return;
     const testimonialTimer = window.setInterval(() => {
       setTestimonialDot((prev) => getNextSlideIndex(prev, TESTIMONIALS.length, 1));
     }, 4800);
     return () => window.clearInterval(testimonialTimer);
-  }, [testimonialPaused]);
+  }, [testimonialPaused, testimonialDrag.isDragging]);
 
   const featuredTrack = [
     ...FEATURED_CAROUSEL_CATEGORIES,
@@ -275,7 +367,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
   return (
     <main className="max-w-[1252px] mx-auto px-4 xl:px-0">
-      {/* Hero Banners (Auto-sliding 3-slide carousel + side promo banner) */}
+      {/* Hero Banners (Auto-sliding + click-drag 3-slide carousel + Desktop-only side promo banner) */}
       <section className="pt-4 sm:pt-[20px]">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5">
           <div
@@ -283,12 +375,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
             data-hero-slide={heroDot}
             onMouseEnter={() => setHeroPaused(true)}
             onMouseLeave={() => setHeroPaused(false)}
-            className="lg:col-span-8 relative rounded-[10px] overflow-hidden bg-[#1D2B1F] h-[168px] sm:h-[260px] lg:h-[332px] group"
+            {...heroDrag.dragHandlers}
+            className="w-full lg:col-span-8 relative rounded-[10px] overflow-hidden bg-[#1D2B1F] h-[152px] sm:h-[260px] lg:h-[332px] touch-pan-y select-none cursor-grab active:cursor-grabbing"
           >
             <div
               data-testid="hero-slider-track"
-              style={{ transform: `translateX(-${heroDot * 100}%)` }}
-              className="flex h-full transition-transform duration-700 ease-in-out"
+              style={{
+                transform: `translateX(calc(-${heroDot * 100}% + ${heroDrag.dragOffset}px))`,
+              }}
+              className={`flex h-full ${
+                heroDrag.isDragging ? 'transition-none' : 'transition-transform duration-700 ease-in-out'
+              }`}
             >
               {/* Slide 1: Main Ghorer Bazar Hero Banner */}
               <button
@@ -301,7 +398,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   src="/images/hero-main.png"
                   alt="অর্গানিক বিটরুট পাউডারের সাথে হানিরাজ লিচু ফ্লাওয়ার হানি স্যাশে বক্স ফ্রি"
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-contain lg:object-cover block"
+                  className="w-full h-full object-cover object-center block"
                 />
               </button>
 
@@ -321,24 +418,24 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </button>
 
               {/* Slide 3: Ghorer Bazar Purity Combo Promotional Slide */}
-              <div className="w-full h-full shrink-0 bg-gradient-to-r from-[#041F1E] via-[#0B3533] to-[#134E4A] px-11 sm:px-12 pt-3 pb-7 sm:pt-6 sm:pb-9 flex items-center justify-between gap-3 sm:gap-5 relative">
+              <div className="w-full h-full shrink-0 bg-gradient-to-r from-[#041F1E] via-[#0B3533] to-[#134E4A] px-4 sm:px-12 pt-3 pb-7 sm:pt-6 sm:pb-9 flex items-center justify-between gap-2.5 sm:gap-5 relative">
                 <div className="min-w-0 flex-1 text-left z-10">
-                  <span className="inline-block bg-[#F48721] text-white text-[9px] sm:text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-[4px]">
+                  <span className="inline-block bg-[#F48721] text-white text-[9px] sm:text-[11px] font-semibold uppercase tracking-wider px-2 sm:px-2.5 py-0.5 rounded-[4px]">
                     Ghorer Bazar Special
                   </span>
-                  <h2 className="mt-1 sm:mt-2.5 text-[14px] sm:text-[22px] lg:text-[25px] font-bold text-white leading-[1.22]">
+                  <h2 className="mt-1 sm:mt-2.5 text-[13px] sm:text-[22px] lg:text-[25px] font-bold text-white leading-[1.2]">
                     খাঁটি ঘি, মধু ও সরিষার তেল
                   </h2>
-                  <p className="mt-1 sm:mt-1.5 text-[10.5px] sm:text-[13px] text-white/90 leading-[1.4]">
+                  <p className="mt-0.5 sm:mt-1.5 text-[10px] sm:text-[13px] text-white/90 leading-[1.35] line-clamp-2">
                     ১০০% বিশুদ্ধ ও ল্যাব-টেস্টেড প্রাকৃতিক পণ্যে বিশেষ ছাড়!
                   </p>
                   <button
                     type="button"
                     onClick={() => onOpenCategoryPage('offer-zone')}
-                    className="mt-2 sm:mt-3.5 inline-flex items-center gap-1.5 bg-[#F48721] hover:bg-[#E07614] text-white text-[10.5px] sm:text-[12.5px] font-semibold px-3 sm:px-4.5 py-1.5 sm:py-2 rounded-[5px] transition-colors cursor-pointer whitespace-nowrap"
+                    className="mt-1.5 sm:mt-3.5 inline-flex items-center gap-1.5 bg-[#F48721] hover:bg-[#E07614] text-white text-[10px] sm:text-[12.5px] font-semibold px-2.5 sm:px-4.5 py-1 sm:py-2 rounded-[5px] transition-colors cursor-pointer whitespace-nowrap"
                   >
                     <span>Shop Offer Zone</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   </button>
                 </div>
 
@@ -347,14 +444,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     <img
                       src="/images/top-ghee.png"
                       alt="Gawa Ghee"
-                      className="h-[68px] sm:h-[118px] lg:h-[145px] w-auto object-contain"
+                      className="h-[58px] sm:h-[118px] lg:h-[145px] w-auto object-contain"
                     />
                   </div>
                   <div className="bg-white/95 rounded-[8px] p-1 sm:p-1.5 shadow-md flex items-center justify-center">
                     <img
                       src="/images/top-sundarban-honey.png"
                       alt="Sundarban Honey"
-                      className="h-[68px] sm:h-[118px] lg:h-[145px] w-auto object-contain"
+                      className="h-[58px] sm:h-[118px] lg:h-[145px] w-auto object-contain"
                     />
                   </div>
                   <div className="hidden sm:flex bg-white/95 rounded-[8px] p-1.5 shadow-md items-center justify-center">
@@ -368,25 +465,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
             </div>
 
-            {/* Prev / Next Hero Arrows */}
-            <button
-              type="button"
-              aria-label="Previous hero slide"
-              onClick={() => setHeroDot((prev) => getNextSlideIndex(prev, HERO_SLIDE_COUNT, -1))}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/35 hover:bg-[#F48721] text-white flex items-center justify-center opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-all cursor-pointer"
+            <div
+              data-no-drag="true"
+              className="absolute bottom-2 sm:bottom-3 left-1/2 -translate-x-1/2 sm:left-5 sm:translate-x-0 flex items-center gap-2 z-10"
             >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              aria-label="Next hero slide"
-              onClick={() => setHeroDot((prev) => getNextSlideIndex(prev, HERO_SLIDE_COUNT, 1))}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/35 hover:bg-[#F48721] text-white flex items-center justify-center opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-all cursor-pointer"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-
-            <div className="absolute bottom-2.5 sm:bottom-3 left-1/2 -translate-x-1/2 sm:left-5 sm:translate-x-0 flex items-center gap-2 z-10">
               {[0, 1, 2].map((idx) => (
                 <button
                   key={idx}
@@ -396,7 +478,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   className={`h-2 rounded-full transition-all cursor-pointer ${
                     heroDot === idx
                       ? 'w-5 bg-[#F48721]'
-                      : 'w-2 bg-white/80 hover:bg-white'
+                      : 'w-2 bg-white/85 hover:bg-white'
                   }`}
                 />
               ))}
@@ -405,8 +487,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
           <button
             type="button"
+            data-testid="hero-side-promo"
             onClick={() => onOpenCategoryPage('sundarban-honey')}
-            className="lg:col-span-4 rounded-[10px] overflow-hidden bg-[#2E1E14] block text-left cursor-pointer h-[185px] sm:h-[260px] lg:h-[332px]"
+            className="hidden lg:block lg:col-span-4 rounded-[10px] overflow-hidden bg-[#2E1E14] text-left cursor-pointer lg:h-[332px]"
             aria-label="Explore Sundarban Honey and Combo Deals"
           >
             <img
@@ -419,7 +502,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
       </section>
 
-      {/* Featured Categories (Auto-sliding Carousel) */}
+      {/* Featured Categories (Auto-sliding + click-drag Carousel) */}
       <section
         id="featured-categories"
         className="pt-7 pb-4"
@@ -429,56 +512,43 @@ export const HomeView: React.FC<HomeViewProps> = ({
         <h2 className="text-[18px] sm:text-[20px] font-medium text-[#222933] text-center mb-5 sm:mb-6">
           Featured Categories
         </h2>
-        <div className="relative">
-          <button
-            type="button"
-            aria-label="Previous categories"
-            onClick={() =>
-              setFeaturedIndex((prev) => getNextSlideIndex(prev, FEATURED_SLIDE_COUNT, -1))
+        <div
+          className="overflow-hidden touch-pan-y select-none cursor-grab active:cursor-grabbing"
+          {...featuredDrag.dragHandlers}
+        >
+          <div
+            data-testid="featured-categories-track"
+            data-slide-index={featuredIndex}
+            style={
+              {
+                '--slide-index': featuredIndex,
+                '--drag-offset': `${featuredDrag.dragOffset}px`,
+              } as React.CSSProperties
             }
-            className="flex absolute -left-2 xl:-left-4 top-[50px] sm:top-[56px] z-10 w-8 h-8 rounded-full bg-[#F48721] hover:bg-[#E07614] text-white items-center justify-center shadow-sm cursor-pointer transition-colors"
+            className={`cat-carousel-track flex gap-3.5 sm:gap-[18px] ${
+              featuredDrag.isDragging ? 'transition-none' : 'transition-transform duration-500 ease-out'
+            }`}
           >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            aria-label="Next categories"
-            onClick={() =>
-              setFeaturedIndex((prev) => getNextSlideIndex(prev, FEATURED_SLIDE_COUNT, 1))
-            }
-            className="flex absolute -right-2 xl:-right-4 top-[50px] sm:top-[56px] z-10 w-8 h-8 rounded-full bg-[#F48721] hover:bg-[#E07614] text-white items-center justify-center shadow-sm cursor-pointer transition-colors"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-
-          <div className="overflow-hidden">
-            <div
-              data-testid="featured-categories-track"
-              data-slide-index={featuredIndex}
-              style={{ '--slide-index': featuredIndex } as React.CSSProperties}
-              className="cat-carousel-track flex gap-3.5 sm:gap-[18px] transition-transform duration-500 ease-out"
-            >
-              {featuredTrack.map((cat, idx) => (
-                <button
-                  key={`${cat.id}-${idx}`}
-                  type="button"
-                  onClick={() => onOpenCategoryPage(cat.categorySlug)}
-                  className="cat-carousel-item group flex flex-col items-center cursor-pointer"
-                >
-                  <div className="w-full h-[116px] sm:h-[142px] bg-white rounded-[10px] border border-[#ECEAE4] shadow-[0_1px_4px_rgba(0,0,0,0.03)] flex items-center justify-center p-2.5 group-hover:border-[#F48721]/60 transition-colors">
-                    <img
-                      src={cat.image}
-                      alt={cat.name}
-                      referrerPolicy="no-referrer"
-                      className="max-h-[92px] sm:max-h-[112px] max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
-                    />
-                  </div>
-                  <span className="mt-2.5 sm:mt-3 text-[13px] sm:text-[13.5px] font-medium text-[#374151] group-hover:text-[#F48721] transition-colors whitespace-nowrap">
-                    {cat.name}
-                  </span>
-                </button>
-              ))}
-            </div>
+            {featuredTrack.map((cat, idx) => (
+              <button
+                key={`${cat.id}-${idx}`}
+                type="button"
+                onClick={() => onOpenCategoryPage(cat.categorySlug)}
+                className="cat-carousel-item group flex flex-col items-center cursor-pointer"
+              >
+                <div className="w-full h-[116px] sm:h-[142px] bg-white rounded-[10px] border border-[#ECEAE4] shadow-[0_1px_4px_rgba(0,0,0,0.03)] flex items-center justify-center p-2.5 group-hover:border-[#F48721]/60 transition-colors">
+                  <img
+                    src={cat.image}
+                    alt={cat.name}
+                    referrerPolicy="no-referrer"
+                    className="max-h-[92px] sm:max-h-[112px] max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+                <span className="mt-2.5 sm:mt-3 text-[13px] sm:text-[13.5px] font-medium text-[#374151] group-hover:text-[#F48721] transition-colors whitespace-nowrap">
+                  {cat.name}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       </section>
@@ -616,49 +686,40 @@ export const HomeView: React.FC<HomeViewProps> = ({
           actionLabel="SEE ALL"
           onAction={() => onOpenCategoryPage('all-products')}
         />
-        <div className="relative group/brands">
-          <button
-            type="button"
-            aria-label="Previous brand"
-            onClick={() => setBrandDot((prev) => getNextSlideIndex(prev, BRANDS.length, -1))}
-            className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/95 hover:bg-[#F48721] text-[#475569] hover:text-white border border-[#E6E4DF] items-center justify-center shadow-sm opacity-0 group-hover/brands:opacity-100 transition-all cursor-pointer"
+        <div
+          className="overflow-hidden touch-pan-y select-none cursor-grab active:cursor-grabbing"
+          {...brandDrag.dragHandlers}
+        >
+          <div
+            data-testid="brands-carousel-track"
+            data-slide-index={brandDot}
+            style={
+              {
+                '--slide-index': brandDot,
+                '--drag-offset': `${brandDrag.dragOffset}px`,
+              } as React.CSSProperties
+            }
+            className={`brand-carousel-track flex gap-3.5 md:gap-6 ${
+              brandDrag.isDragging ? 'transition-none' : 'transition-transform duration-500 ease-out'
+            }`}
           >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            aria-label="Next brand"
-            onClick={() => setBrandDot((prev) => getNextSlideIndex(prev, BRANDS.length, 1))}
-            className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/95 hover:bg-[#F48721] text-[#475569] hover:text-white border border-[#E6E4DF] items-center justify-center shadow-sm opacity-0 group-hover/brands:opacity-100 transition-all cursor-pointer"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-
-          <div className="overflow-hidden">
-            <div
-              data-testid="brands-carousel-track"
-              data-slide-index={brandDot}
-              style={{ '--slide-index': brandDot } as React.CSSProperties}
-              className="brand-carousel-track flex gap-3.5 md:gap-6 transition-transform duration-500 ease-out"
-            >
-              {brandTrack.map((brand, idx) => (
-                <button
-                  key={`${brand.id}-${idx}`}
-                  type="button"
-                  onClick={() =>
-                    onOpenCategoryPage(brand.id === 'honeyraj' ? 'sundarban-honey' : 'all-products')
-                  }
-                  className="brand-carousel-item bg-white rounded-[8px] border border-[#EAE8E2] h-[80px] sm:h-[90px] flex items-center justify-center px-4 sm:px-5 hover:border-[#F48721]/50 transition-colors cursor-pointer"
-                >
-                  <img
-                    src={brand.image}
-                    alt={brand.name}
-                    referrerPolicy="no-referrer"
-                    className="max-h-[54px] sm:max-h-[68px] max-w-full object-contain"
-                  />
-                </button>
-              ))}
-            </div>
+            {brandTrack.map((brand, idx) => (
+              <button
+                key={`${brand.id}-${idx}`}
+                type="button"
+                onClick={() =>
+                  onOpenCategoryPage(brand.id === 'honeyraj' ? 'sundarban-honey' : 'all-products')
+                }
+                className="brand-carousel-item bg-white rounded-[8px] border border-[#EAE8E2] h-[80px] sm:h-[90px] flex items-center justify-center px-4 sm:px-5 hover:border-[#F48721]/50 transition-colors cursor-pointer"
+              >
+                <img
+                  src={brand.image}
+                  alt={brand.name}
+                  referrerPolicy="no-referrer"
+                  className="max-h-[54px] sm:max-h-[68px] max-w-full object-contain"
+                />
+              </button>
+            ))}
           </div>
         </div>
         <PaginationDots count={BRANDS.length} activeIndex={brandDot} onChange={setBrandDot} />
@@ -774,75 +835,62 @@ export const HomeView: React.FC<HomeViewProps> = ({
           Customer Reviews
         </h2>
 
-        <div className="relative group/reviews">
-          <button
-            type="button"
-            aria-label="Previous review"
-            onClick={() =>
-              setTestimonialDot((prev) => getNextSlideIndex(prev, TESTIMONIALS.length, -1))
+        <div
+          className="overflow-hidden touch-pan-y select-none cursor-grab active:cursor-grabbing"
+          {...testimonialDrag.dragHandlers}
+        >
+          <div
+            data-testid="reviews-carousel-track"
+            data-slide-index={testimonialDot}
+            style={
+              {
+                '--slide-index': testimonialDot,
+                '--drag-offset': `${testimonialDrag.dragOffset}px`,
+              } as React.CSSProperties
             }
-            className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/95 hover:bg-[#F48721] text-[#475569] hover:text-white border border-[#E6E4DF] items-center justify-center shadow-sm opacity-0 group-hover/reviews:opacity-100 transition-all cursor-pointer"
+            className={`review-carousel-track flex gap-3 md:gap-5 ${
+              testimonialDrag.isDragging ? 'transition-none' : 'transition-transform duration-500 ease-out'
+            }`}
           >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            aria-label="Next review"
-            onClick={() =>
-              setTestimonialDot((prev) => getNextSlideIndex(prev, TESTIMONIALS.length, 1))
-            }
-            className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/95 hover:bg-[#F48721] text-[#475569] hover:text-white border border-[#E6E4DF] items-center justify-center shadow-sm opacity-0 group-hover/reviews:opacity-100 transition-all cursor-pointer"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-
-          <div className="overflow-hidden">
-            <div
-              data-testid="reviews-carousel-track"
-              data-slide-index={testimonialDot}
-              style={{ '--slide-index': testimonialDot } as React.CSSProperties}
-              className="review-carousel-track flex gap-3 md:gap-5 transition-transform duration-500 ease-out"
-            >
-              {testimonialTrack.map((t, idx) => (
-                <div
-                  key={`${t.id}-${idx}`}
-                  data-testid={`review-slide-card-${idx}`}
-                  className="review-carousel-item min-w-0 flex"
-                >
-                  <div className="w-full bg-white rounded-[10px] border border-[#EAE8E2] p-3.5 sm:p-6 flex flex-col justify-between min-h-[215px] sm:min-h-[244px] shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-                    <div>
-                      <p className="text-[12px] sm:text-[13.5px] text-[#4B5563] leading-[1.5] sm:leading-[1.6]">
-                        {t.quote}
-                      </p>
-                      <div className="flex items-center gap-0.5 mt-3 sm:mt-4">
-                        {Array.from({ length: t.rating }).map((_, i) => (
-                          <Star
-                            key={i}
-                            className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-[#F59E0B] text-[#F59E0B]"
-                          />
-                        ))}
-                      </div>
+            {testimonialTrack.map((t, idx) => (
+              <div
+                key={`${t.id}-${idx}`}
+                data-testid={`review-slide-card-${idx}`}
+                className="review-carousel-item min-w-0 flex"
+              >
+                <div className="w-full bg-white rounded-[10px] border border-[#EAE8E2] p-5 sm:p-6 flex flex-col justify-between min-h-[205px] sm:min-h-[244px] shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+                  <div>
+                    <p className="text-[13.5px] text-[#4B5563] leading-[1.6]">
+                      {t.quote}
+                    </p>
+                    <div className="flex items-center gap-0.5 mt-4">
+                      {Array.from({ length: t.rating }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className="w-3.5 h-3.5 fill-[#F59E0B] text-[#F59E0B]"
+                        />
+                      ))}
                     </div>
-                    <div className="flex items-center gap-2.5 sm:gap-3.5 mt-4 sm:mt-5">
-                      <img
-                        src={t.avatar}
-                        alt={t.name}
-                        referrerPolicy="no-referrer"
-                        className="w-[42px] h-[42px] sm:w-[60px] sm:h-[60px] rounded-full object-cover shrink-0 bg-[#F3F4F6]"
-                      />
-                      <div className="min-w-0">
-                        <h4 className="text-[12.5px] sm:text-[14px] font-medium text-[#222933] truncate">
-                          {t.name}
-                        </h4>
-                        <p className="text-[10.5px] sm:text-[11.5px] text-[#6B7280] truncate">
-                          {t.role}
-                        </p>
-                      </div>
+                  </div>
+                  <div className="flex items-center gap-3.5 mt-5">
+                    <img
+                      src={t.avatar}
+                      alt={t.name}
+                      referrerPolicy="no-referrer"
+                      className="w-[52px] h-[52px] sm:w-[60px] sm:h-[60px] rounded-full object-cover shrink-0 bg-[#F3F4F6]"
+                    />
+                    <div className="min-w-0">
+                      <h4 className="text-[14px] font-medium text-[#222933] truncate">
+                        {t.name}
+                      </h4>
+                      <p className="text-[11.5px] text-[#6B7280] truncate">
+                        {t.role}
+                      </p>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
         <PaginationDots

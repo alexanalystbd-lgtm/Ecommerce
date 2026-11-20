@@ -84,7 +84,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
         </nav>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[292px_1fr] gap-5 items-start pb-[52px]">
+      <div className="grid grid-cols-1 lg:grid-cols-[292px_1fr] gap-5 items-start pb-10 lg:pb-[52px]">
         {/* Left Filters Sidebar (collapsible on mobile, always visible on desktop) */}
         <aside
           className={`${
@@ -278,11 +278,11 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
 
         {/* Right Product Grid & Sort Bar */}
         <div>
-          <div className="bg-white border border-[#E6E4DF] rounded-[6px] px-4 py-2.5 mb-[18px] flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
+          <div className="bg-white border border-[#E6E4DF] rounded-[6px] px-3.5 sm:px-4 py-2.5 mb-[18px] flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2">
               <label
                 htmlFor="menu-sort-select"
-                className="text-[13px] text-[#334155] font-medium whitespace-nowrap"
+                className="text-[12.5px] sm:text-[13px] text-[#334155] font-medium whitespace-nowrap"
               >
                 Sort By :
               </label>
@@ -303,6 +303,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
             <button
               type="button"
               onClick={() => setMobileFiltersOpen((prev) => !prev)}
+              aria-expanded={mobileFiltersOpen}
               className="lg:hidden inline-flex items-center gap-1.5 border border-[#E2E8F0] rounded-[4px] px-3 py-1.5 text-[12.5px] font-medium text-[#334155] hover:border-[#F48721] hover:text-[#F48721] cursor-pointer"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />

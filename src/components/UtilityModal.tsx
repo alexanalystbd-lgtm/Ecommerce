@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Heart, X } from 'lucide-react';
 import { ModalType } from '../types/store';
 
@@ -13,15 +13,29 @@ export const UtilityModal: React.FC<UtilityModalProps> = ({
   onClose,
   onShowToast,
 }) => {
+  useEffect(() => {
+    if (!activeModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeModal, onClose]);
+
   if (!activeModal) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl max-w-[400px] w-full p-6 shadow-xl relative">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-white rounded-xl max-w-[400px] w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 shadow-xl relative">
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 text-[#64748B] hover:text-[#222933] cursor-pointer"
+          className="absolute top-4 right-4 text-[#64748B] hover:text-[#222933] p-1 cursor-pointer"
           aria-label="Close modal"
         >
           <X className="w-5 h-5" />
@@ -45,7 +59,7 @@ export const UtilityModal: React.FC<UtilityModalProps> = ({
                 type="tel"
                 required
                 placeholder="Phone number (+880)"
-                className="w-full border border-[#D1D5DB] rounded-md px-3 py-2 text-[13.5px] focus:outline-none focus:border-[#F48721]"
+                className="w-full border border-[#D1D5DB] rounded-md px-3 py-2 text-[16px] sm:text-[13.5px] focus:outline-none focus:border-[#F48721]"
               />
               <button
                 type="submit"
@@ -75,7 +89,7 @@ export const UtilityModal: React.FC<UtilityModalProps> = ({
                 type="text"
                 required
                 placeholder="e.g. GB-1042"
-                className="w-full border border-[#D1D5DB] rounded-md px-3 py-2 text-[13.5px] focus:outline-none focus:border-[#F48721]"
+                className="w-full border border-[#D1D5DB] rounded-md px-3 py-2 text-[16px] sm:text-[13.5px] focus:outline-none focus:border-[#F48721]"
               />
               <button
                 type="submit"
@@ -117,7 +131,7 @@ export const UtilityModal: React.FC<UtilityModalProps> = ({
                 required
                 rows={3}
                 placeholder="Type your question..."
-                className="w-full border border-[#D1D5DB] rounded-md px-3 py-2 text-[13.5px] focus:outline-none focus:border-[#F48721]"
+                className="w-full border border-[#D1D5DB] rounded-md px-3 py-2 text-[16px] sm:text-[13.5px] focus:outline-none focus:border-[#F48721]"
               />
               <button
                 type="submit"

@@ -6,6 +6,8 @@ import { searchCatalog } from '../utils/storeLogic';
 interface HeaderProps {
   totalCartItems: number;
   allProducts: Product[];
+  isMobileSearchOpen: boolean;
+  onToggleMobileSearch: (open: boolean) => void;
   onGoHome: () => void;
   onOpenCart: () => void;
   onOpenModal: (modal: ModalType) => void;
@@ -18,6 +20,8 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   totalCartItems,
   allProducts,
+  isMobileSearchOpen,
+  onToggleMobileSearch,
   onGoHome,
   onOpenCart,
   onOpenModal,
@@ -46,6 +50,15 @@ export const Header: React.FC<HeaderProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!isMobileSearchOpen) return;
+    const timer = window.setTimeout(() => {
+      const input = document.getElementById('mobile-search-input') as HTMLInputElement | null;
+      input?.focus();
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, [isMobileSearchOpen]);
+
   const handleSearchChange = (val: string) => {
     setSearchQuery(val);
     setIsSearchOpen(val.trim().length > 0);
@@ -73,6 +86,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => {
                   onSelectProduct(item);
                   clearSearch();
+                  onToggleMobileSearch(false);
                 }}
                 className="flex items-center gap-3 min-w-0 flex-1 text-left cursor-pointer group"
               >
@@ -115,9 +129,145 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="bg-white border-b border-[#EEEEEE]">
+    <header className="sticky top-0 md:static z-40 bg-white border-b border-[#EEEEEE]">
       <div className="max-w-[1252px] mx-auto px-4 xl:px-0">
-        <div className="h-[68px] md:h-[86px] flex items-center justify-between gap-3 md:gap-4">
+        {/* Mobile Minimalist Header (Hamburger Left, Logo Center, Cart + Badge Right) */}
+        <div
+          data-testid="mobile-header-bar"
+          className="flex md:hidden h-[58px] items-center justify-between relative"
+        >
+          <button
+            type="button"
+            onClick={onOpenMobileMenu}
+            aria-label="Open categories menu"
+            data-testid="mobile-header-menu-btn"
+            className="w-10 h-10 -ml-1.5 flex items-center justify-start text-[#222933] hover:text-[#F48721] transition-colors cursor-pointer"
+          >
+            <svg
+              width="24"
+              height="18"
+              viewBox="0 0 24 18"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path
+                d="M1 2H22"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+              />
+              <path
+                d="M1 9H15"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+              />
+              <path
+                d="M1 16H22"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+
+          <a
+            href="#top"
+            onClick={(e) => {
+              e.preventDefault();
+              onGoHome();
+            }}
+            className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center"
+            aria-label="Ghorer Bazar Home"
+          >
+            <img
+              src="/images/logo.png"
+              alt="Ghorer Bazar"
+              referrerPolicy="no-referrer"
+              className="h-[36px] w-auto object-contain"
+            />
+          </a>
+
+          <button
+            type="button"
+            onClick={onOpenCart}
+            aria-label={`Cart (${totalCartItems} items)`}
+            data-testid="mobile-header-cart-btn"
+            className="w-10 h-10 -mr-1 flex items-center justify-end text-[#222933] hover:text-[#F48721] transition-colors cursor-pointer"
+          >
+            <div className="relative">
+              <ShoppingCart className="w-[22px] h-[22px] stroke-[1.7]" />
+              <span
+                data-testid="mobile-header-cart-badge"
+                className="absolute -top-1.5 -right-2 bg-[#F48721] text-white text-[10px] font-bold min-w-[17px] h-[17px] px-1 rounded-full flex items-center justify-center leading-none tabular-nums"
+              >
+                {totalCartItems}
+              </span>
+            </div>
+          </button>
+        </div>
+
+        {/* Mobile Expandable Search Panel (Opened from Bottom Nav Search Button) */}
+        {isMobileSearchOpen && (
+          <div
+            ref={mobileSearchRef}
+            data-testid="mobile-search-panel"
+            className="relative pb-3 pt-1 md:hidden"
+          >
+            <div className="flex items-center gap-2">
+              <div className="flex-1 flex items-center bg-[#F5F5F5] border border-transparent focus-within:border-[#F48721] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#F48721]/20 rounded-[6px] h-[42px] pl-3.5 overflow-hidden transition-all">
+                <input
+                  id="mobile-search-input"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  onFocus={() => {
+                    if (searchQuery.trim()) setIsSearchOpen(true);
+                  }}
+                  placeholder="Search honey, dates, ghee..."
+                  aria-label="Search products on mobile"
+                  className="w-full bg-transparent text-[16px] sm:text-[13.5px] text-[#222933] placeholder-[#6B7280] focus:outline-none pr-2"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    className="text-[#6B7280] hover:text-[#222933] cursor-pointer pr-2 shrink-0"
+                    aria-label="Clear mobile search"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (searchQuery.trim()) setIsSearchOpen(true);
+                  }}
+                  aria-label="Mobile search"
+                  className="h-full w-[42px] bg-[#F48721] hover:bg-[#E07614] text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+                >
+                  <Search className="w-[18px] h-[18px]" />
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  clearSearch();
+                  onToggleMobileSearch(false);
+                }}
+                aria-label="Close mobile search"
+                className="w-9 h-[42px] flex items-center justify-center text-[#6B7280] hover:text-[#222933] cursor-pointer shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {renderDropdown()}
+          </div>
+        )}
+
+        {/* Desktop Header */}
+        <div className="hidden md:flex h-[86px] items-center justify-between gap-4">
           {/* Logo */}
           <a
             href="#top"
@@ -132,12 +282,12 @@ export const Header: React.FC<HeaderProps> = ({
               src="/images/logo.png"
               alt="Ghorer Bazar"
               referrerPolicy="no-referrer"
-              className="h-[38px] md:h-[48px] w-auto object-contain"
+              className="h-[48px] w-auto object-contain"
             />
           </a>
 
           {/* Center Search Bar (Desktop) */}
-          <div ref={desktopSearchRef} className="relative flex-1 max-w-[446px] mx-4 hidden md:block">
+          <div ref={desktopSearchRef} className="relative flex-1 max-w-[446px] mx-4">
             <div className="flex items-center bg-[#F5F5F5] border border-transparent focus-within:border-[#F48721] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#F48721]/20 rounded-[6px] h-[42px] pl-4 overflow-hidden transition-all">
               <input
                 type="text"
@@ -175,14 +325,14 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Right Header Actions */}
-          <div className="flex items-center gap-3.5 sm:gap-6 shrink-0">
+          <div className="flex items-center gap-6 shrink-0">
             <button
               type="button"
               onClick={() => onOpenModal('track')}
               className="flex flex-col items-center gap-1 text-[#374151] hover:text-[#F48721] transition-colors cursor-pointer whitespace-nowrap"
             >
               <MapPin className="w-[19px] h-[19px] stroke-[1.7]" />
-              <span className="text-[10.5px] sm:text-[11.5px] leading-none">Track Order</span>
+              <span className="text-[11.5px] leading-none">Track Order</span>
             </button>
 
             <button
@@ -191,13 +341,13 @@ export const Header: React.FC<HeaderProps> = ({
               className="flex flex-col items-center gap-1 text-[#374151] hover:text-[#F48721] transition-colors cursor-pointer whitespace-nowrap"
             >
               <User className="w-[19px] h-[19px] stroke-[1.7]" />
-              <span className="text-[10.5px] sm:text-[11.5px] leading-none">Sign In</span>
+              <span className="text-[11.5px] leading-none">Sign In</span>
             </button>
 
             <button
               type="button"
               onClick={() => onOpenModal('wishlist')}
-              className="hidden sm:flex flex-col items-center gap-1 text-[#374151] hover:text-[#F48721] transition-colors cursor-pointer whitespace-nowrap"
+              className="flex flex-col items-center gap-1 text-[#374151] hover:text-[#F48721] transition-colors cursor-pointer whitespace-nowrap"
             >
               <Heart className="w-[19px] h-[19px] stroke-[1.7]" />
               <span className="text-[11.5px] leading-none">Wishlist</span>
@@ -218,68 +368,18 @@ export const Header: React.FC<HeaderProps> = ({
                   {totalCartItems}
                 </span>
               </div>
-              <span className="text-[10.5px] sm:text-[11.5px] leading-none">Cart</span>
+              <span className="text-[11.5px] leading-none">Cart</span>
             </button>
 
-            {/* On desktop: scrolls to footer links; on mobile: opens full category drawer */}
             <button
               type="button"
               onClick={onScrollToFooter}
-              className="hidden md:flex flex-col items-center gap-1 text-[#374151] hover:text-[#F48721] transition-colors cursor-pointer whitespace-nowrap"
+              className="flex flex-col items-center gap-1 text-[#374151] hover:text-[#F48721] transition-colors cursor-pointer whitespace-nowrap"
             >
               <Menu className="w-[19px] h-[19px] stroke-[1.7]" />
               <span className="text-[11.5px] leading-none">More</span>
             </button>
-
-            <button
-              type="button"
-              onClick={onOpenMobileMenu}
-              aria-label="Open categories menu"
-              className="flex md:hidden flex-col items-center gap-1 text-[#374151] hover:text-[#F48721] transition-colors cursor-pointer whitespace-nowrap"
-            >
-              <Menu className="w-[19px] h-[19px] stroke-[1.7]" />
-              <span className="text-[10.5px] leading-none">Menu</span>
-            </button>
           </div>
-        </div>
-
-        {/* Mobile Search Bar Row */}
-        <div ref={mobileSearchRef} className="relative pb-3 md:hidden">
-          <div className="flex items-center bg-[#F5F5F5] border border-transparent focus-within:border-[#F48721] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#F48721]/20 rounded-[6px] h-[40px] pl-3.5 overflow-hidden transition-all">
-            <input
-              id="mobile-search-input"
-              type="text"
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              onFocus={() => {
-                if (searchQuery.trim()) setIsSearchOpen(true);
-              }}
-              placeholder="Search honey, dates, ghee..."
-              aria-label="Search products on mobile"
-              className="w-full bg-transparent text-[13.5px] text-[#222933] placeholder-[#6B7280] focus:outline-none pr-2"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={clearSearch}
-                className="text-[#6B7280] hover:text-[#222933] cursor-pointer pr-2 shrink-0"
-                aria-label="Clear mobile search"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                if (searchQuery.trim()) setIsSearchOpen(true);
-              }}
-              aria-label="Mobile search"
-              className="h-full w-[42px] bg-[#F48721] hover:bg-[#E07614] text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer"
-            >
-              <Search className="w-[18px] h-[18px]" />
-            </button>
-          </div>
-          {renderDropdown()}
         </div>
       </div>
     </header>

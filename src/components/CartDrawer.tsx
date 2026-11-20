@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CheckCircle2, Minus, Plus, ShoppingBag, ShoppingCart, Trash2, X } from 'lucide-react';
 import { CartItem } from '../types/store';
 
@@ -27,13 +27,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
 
-  if (!isOpen) return null;
-
   const handleClose = () => {
     setCheckoutOpen(false);
     setOrderPlaced(false);
     onClose();
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +110,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="Enter your name"
-                  className="w-full border border-[#D1D5DB] rounded-md px-3 py-2 text-[13.5px] focus:outline-none focus:border-[#F48721]"
+                  className="w-full border border-[#D1D5DB] rounded-md px-3 py-2 text-[16px] sm:text-[13.5px] focus:outline-none focus:border-[#F48721]"
                 />
               </div>
               <div>
@@ -114,7 +123,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   placeholder="01XXXXXXXXX"
-                  className="w-full border border-[#D1D5DB] rounded-md px-3 py-2 text-[13.5px] focus:outline-none focus:border-[#F48721]"
+                  className="w-full border border-[#D1D5DB] rounded-md px-3 py-2 text-[16px] sm:text-[13.5px] focus:outline-none focus:border-[#F48721]"
                 />
               </div>
               <div>
@@ -127,7 +136,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   value={customerAddress}
                   onChange={(e) => setCustomerAddress(e.target.value)}
                   placeholder="House, Road, Area, Dhaka"
-                  className="w-full border border-[#D1D5DB] rounded-md px-3 py-2 text-[13.5px] focus:outline-none focus:border-[#F48721]"
+                  className="w-full border border-[#D1D5DB] rounded-md px-3 py-2 text-[16px] sm:text-[13.5px] focus:outline-none focus:border-[#F48721]"
                 />
               </div>
               <div className="pt-2 flex items-center gap-2.5">

@@ -40,6 +40,7 @@ export default function App() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -163,11 +164,11 @@ export default function App() {
   };
 
   const handleFocusMobileSearch = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsMobileSearchOpen((prev) => !prev);
     window.setTimeout(() => {
       const input = document.getElementById('mobile-search-input') as HTMLInputElement | null;
       input?.focus();
-    }, 250);
+    }, 80);
   };
 
   return (
@@ -175,6 +176,8 @@ export default function App() {
       <Header
         totalCartItems={totalItems}
         allProducts={ALL_CATALOG_PRODUCTS}
+        isMobileSearchOpen={isMobileSearchOpen}
+        onToggleMobileSearch={setIsMobileSearchOpen}
         onGoHome={handleGoHome}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenModal={(modal) => setActiveModal(modal)}

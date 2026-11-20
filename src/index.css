@@ -21,6 +21,7 @@ body {
   font-family: 'Plus Jakarta Sans', 'Hind Siliguri', sans-serif;
   background-color: #FBF9F5;
   color: #222933;
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -55,8 +56,9 @@ body {
   -webkit-appearance: none;
   appearance: none;
   pointer-events: auto;
-  width: 14px;
-  height: 14px;
+  touch-action: none;
+  width: 16px;
+  height: 16px;
   border-radius: 9999px;
   background: #F48721;
   border: 2px solid #F48721;
@@ -66,8 +68,9 @@ body {
 
 .range-input::-moz-range-thumb {
   pointer-events: auto;
-  width: 14px;
-  height: 14px;
+  touch-action: none;
+  width: 16px;
+  height: 16px;
   border-radius: 9999px;
   background: #F48721;
   border: 2px solid #F48721;
@@ -95,7 +98,7 @@ body {
 /* Responsive horizontal sliding tracks for Home Featured Categories & Product Carousels */
 .cat-carousel-track {
   --slide-step: calc(50% + 7px);
-  transform: translateX(calc(var(--slide-index, 0) * -1 * var(--slide-step)));
+  transform: translateX(calc(var(--slide-index, 0) * -1 * var(--slide-step) + var(--drag-offset, 0px)));
 }
 
 .cat-carousel-item {
@@ -122,7 +125,7 @@ body {
 
 .prod-carousel-track {
   --slide-step: calc(50% + 6px);
-  transform: translateX(calc(var(--slide-index, 0) * -1 * var(--slide-step)));
+  transform: translateX(calc(var(--slide-index, 0) * -1 * var(--slide-step) + var(--drag-offset, 0px)));
 }
 
 .prod-carousel-item {
@@ -149,7 +152,7 @@ body {
 
 .brand-carousel-track {
   --slide-step: calc(50% + 7px);
-  transform: translateX(calc(var(--slide-index, 0) * -1 * var(--slide-step)));
+  transform: translateX(calc(var(--slide-index, 0) * -1 * var(--slide-step) + var(--drag-offset, 0px)));
 }
 
 .brand-carousel-item {
@@ -166,12 +169,12 @@ body {
 }
 
 .review-carousel-track {
-  --slide-step: calc(50% + 6px);
-  transform: translateX(calc(var(--slide-index, 0) * -1 * var(--slide-step)));
+  --slide-step: calc(100% + 12px);
+  transform: translateX(calc(var(--slide-index, 0) * -1 * var(--slide-step) + var(--drag-offset, 0px)));
 }
 
 .review-carousel-item {
-  flex: 0 0 calc((100% - 12px) / 2);
+  flex: 0 0 100%;
 }
 
 @media (min-width: 768px) {

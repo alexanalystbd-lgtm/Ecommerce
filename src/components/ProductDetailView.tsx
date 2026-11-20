@@ -182,7 +182,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               setZoomOrigin({ x: 50, y: 50 });
             }}
             data-testid="pdp-main-image-box"
-            className="group flex-1 bg-white border border-[#E6E4DF] rounded-[8px] h-[310px] sm:h-[430px] relative flex items-center justify-center p-6 overflow-hidden cursor-zoom-in"
+            className="group flex-1 bg-white border border-[#E6E4DF] rounded-[8px] h-[265px] sm:h-[430px] relative flex items-center justify-center p-4 sm:p-6 overflow-hidden cursor-zoom-in"
           >
             {isOut && (
               <span className="absolute top-3.5 left-3.5 z-10 bg-[#E12B2B] text-white text-[11px] font-medium px-2.5 py-0.5 rounded-[3px]">
@@ -321,18 +321,18 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="mt-5 grid grid-cols-2 gap-2.5">
             <button
               type="button"
               disabled={isOut}
               onClick={() => onAddToCart(product, quantity)}
-              className={`rounded-[4px] py-2.5 px-4 text-[12.5px] font-semibold uppercase tracking-wide flex items-center justify-center gap-2 transition-colors ${
+              className={`rounded-[4px] py-2.5 px-2.5 sm:px-4 text-[11.5px] sm:text-[12.5px] font-semibold uppercase tracking-wide flex items-center justify-center gap-1.5 sm:gap-2 transition-colors whitespace-nowrap ${
                 isOut
                   ? 'bg-[#F1F5F9] text-[#94A3B8] border border-[#CBD5E1] cursor-not-allowed'
                   : 'bg-[#F48721] hover:bg-[#E07614] text-white cursor-pointer'
               }`}
             >
-              <ShoppingBag className="w-4 h-4" />
+              <ShoppingBag className="w-4 h-4 shrink-0" />
               <span>{isOut ? 'Out of Stock' : 'ADD TO CART'}</span>
             </button>
 
@@ -340,7 +340,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               type="button"
               disabled={isOut}
               onClick={() => onBuyNow(product, quantity)}
-              className={`rounded-[4px] py-2.5 px-4 text-[12.5px] font-semibold uppercase tracking-wide flex items-center justify-center transition-colors ${
+              className={`rounded-[4px] py-2.5 px-2.5 sm:px-4 text-[11.5px] sm:text-[12.5px] font-semibold uppercase tracking-wide flex items-center justify-center transition-colors whitespace-nowrap ${
                 isOut
                   ? 'bg-[#F1F5F9] text-[#94A3B8] border border-[#CBD5E1] cursor-not-allowed'
                   : 'bg-[#041F1E] hover:bg-[#0B3331] text-white cursor-pointer'
@@ -353,11 +353,11 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
       </section>
 
       {/* Section Tabs (Description & Customer Reviews ONLY — No Video) */}
-      <div className="mt-8 flex flex-wrap items-center gap-2.5">
+      <div className="mt-8 flex items-center gap-2.5">
         <button
           type="button"
           onClick={() => scrollToTab('description')}
-          className={`px-6 py-2 rounded-[6px] text-[13px] font-medium border transition-colors cursor-pointer ${
+          className={`flex-1 sm:flex-none px-3 sm:px-6 py-2 rounded-[6px] text-[12.5px] sm:text-[13px] font-medium border transition-colors cursor-pointer whitespace-nowrap ${
             activeTab === 'description'
               ? 'bg-white border-[#F48721] text-[#222933]'
               : 'bg-white border-[#E6E4DF] text-[#475569] hover:border-[#F48721]/60'
@@ -368,7 +368,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
         <button
           type="button"
           onClick={() => scrollToTab('reviews')}
-          className={`px-6 py-2 rounded-[6px] text-[13px] font-medium border transition-colors cursor-pointer ${
+          className={`flex-1 sm:flex-none px-3 sm:px-6 py-2 rounded-[6px] text-[12.5px] sm:text-[13px] font-medium border transition-colors cursor-pointer whitespace-nowrap ${
             activeTab === 'reviews'
               ? 'bg-white border-[#F48721] text-[#222933]'
               : 'bg-white border-[#E6E4DF] text-[#475569] hover:border-[#F48721]/60'
@@ -381,7 +381,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
       {/* Product Details Card */}
       <section
         ref={descriptionRef}
-        className="mt-4 bg-white border border-[#E6E4DF] rounded-[8px] p-5 sm:p-7"
+        className="mt-4 bg-white border border-[#E6E4DF] rounded-[8px] p-4 sm:p-7"
       >
         <div className="border-b border-[#EAE8E3] pb-2 mb-5">
           <h2 className="text-[15.5px] font-semibold text-[#222933] inline-block relative">
@@ -410,7 +410,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
       {/* Customer Reviews & Submit Your Review Card */}
       <section
         ref={reviewsRef}
-        className="mt-6 bg-white border border-[#E6E4DF] rounded-[8px] p-5 sm:p-7"
+        className="mt-6 bg-white border border-[#E6E4DF] rounded-[8px] p-4 sm:p-7"
       >
         <div className="grid grid-cols-1 md:grid-cols-[270px_1fr] gap-8">
           {/* Left: Average Rating & Breakdown */}
@@ -505,7 +505,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}
                   placeholder="Write Your Review Here..."
-                  className="w-full border border-[#E2E8F0] rounded-[6px] p-3 text-[13px] text-[#222933] placeholder-[#94A3B8] focus:outline-none focus:border-[#F48721]"
+                  className="w-full border border-[#E2E8F0] rounded-[6px] p-3 text-[16px] sm:text-[13px] text-[#222933] placeholder-[#94A3B8] focus:outline-none focus:border-[#F48721]"
                 />
               </div>
 
@@ -552,7 +552,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                   id="review-rating-select"
                   value={reviewRating}
                   onChange={(e) => setReviewRating(e.target.value)}
-                  className="w-full sm:w-[290px] border border-[#E2E8F0] rounded-[6px] px-3 py-2 text-[13px] text-[#334155] bg-white focus:outline-none focus:border-[#F48721]"
+                  className="w-full sm:w-[290px] border border-[#E2E8F0] rounded-[6px] px-3 py-2 text-[16px] sm:text-[13px] text-[#334155] bg-white focus:outline-none focus:border-[#F48721]"
                 >
                   <option value="">Select One</option>
                   <option value="5">5 Stars - Excellent</option>
@@ -566,7 +566,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  className="bg-[#374151] hover:bg-[#1F2937] text-white text-[12px] font-semibold uppercase tracking-wide px-5 py-2.5 rounded-[4px] transition-colors cursor-pointer"
+                  className="w-full sm:w-auto bg-[#374151] hover:bg-[#1F2937] text-white text-[12px] font-semibold uppercase tracking-wide px-5 py-2.5 rounded-[4px] transition-colors cursor-pointer"
                 >
                   SUBMIT REVIEW
                 </button>
